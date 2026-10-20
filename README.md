@@ -2,7 +2,7 @@
 
 ![hey-shell: your words, shell commands](docs/assets/preview.png)
 
-Type what you want in plain language, press **Ctrl+G**, and your prompt line is replaced with the shell command. It is **never executed for you**: you review, edit and press Enter.
+Type what you want in plain language, press a key (**Ctrl+G** by default, configurable), and your prompt line is replaced with the shell command. It is **never executed for you**: you review, edit and press Enter.
 
 ```
 $ grep the container ids of working docker   <Ctrl+G>
@@ -15,11 +15,12 @@ Works in bash and zsh on Linux, WSL2 and macOS. Uses the [Claude Code](https://c
 
 ```bash
 git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell
-~/hey-shell/install.sh          # detects bash/zsh; add --shell zsh to force
+~/hey-shell/install.sh          # asks which key to use (default ctrl+g); detects bash/zsh, add --shell zsh to force
+~/hey-shell/install.sh --key alt+o # or pass the key directly; re-run with a new --key to change it
 source ~/.zshrc                    # or ~/.bashrc, or open a new terminal
 ```
 
-The installer appends one marked `source` block to your rc file and is safe to run twice. Remove it with `./install.sh --uninstall`.
+The installer appends one marked block to your rc file. Keys are `ctrl+<letter|digit>` or `alt+<letter|digit>`; terminal-reserved ones (`ctrl+c`, `ctrl+d`, `ctrl+z`, ...) are refused. On macOS, `alt+` keys need "Use Option as Meta key" enabled in your terminal. Remove everything with `./install.sh --uninstall`.
 
 ### As a Claude Code plugin
 
@@ -36,9 +37,9 @@ A plugin cannot bind keys in your shell by itself, so `/hey-shell:install` runs 
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `HEY_SHELL_MODEL` | `haiku` | model passed to `claude --model` |
-| `HEY_SHELL_KEY` | `^G` (zsh) / `\C-g` (bash) | key binding, in `bindkey` / `bind` syntax |
+| `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
 
-Set them before the installer's `source` line in your rc file.
+Set `HEY_SHELL_MODEL` before the `source` line in your rc file; `HEY_SHELL_KEY` is written there by the installer.
 
 ## Safety
 

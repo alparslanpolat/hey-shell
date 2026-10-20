@@ -1,6 +1,16 @@
-# hey-shell for bash: press Ctrl+G (override with HEY_SHELL_KEY) to replace the
-# typed request with a generated command. The command is never executed.
+# hey-shell for bash: press your key (default ctrl+g, set HEY_SHELL_KEY="alt+o" etc.)
+# to replace the typed request with a generated command. The command is never executed.
 _hey_shell_bin="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bin/hey-shell"
+
+_hey_shell_keyseq() {
+  local k=${HEY_SHELL_KEY:-ctrl+g} l
+  l=$(printf '%s' "$k" | tr '[:upper:]' '[:lower:]')
+  case $l in
+    ctrl+?) printf '\\C-%s' "${l#ctrl+}" ;;
+    alt+?)  printf '\\e%s' "${l#alt+}" ;;
+    *)      printf '%s' "$k" ;;
+  esac
+}
 
 _hey_shell_fill() {
   local request=$READLINE_LINE cmd
@@ -14,4 +24,4 @@ _hey_shell_fill() {
   fi
 }
 
-[[ $- == *i* ]] && bind -x "\"${HEY_SHELL_KEY:-\C-g}\": _hey_shell_fill"
+[[ $- == *i* ]] && bind -x "\"$(_hey_shell_keyseq)\": _hey_shell_fill"

@@ -1,6 +1,16 @@
-# hey-shell for zsh: press Ctrl+G (override with HEY_SHELL_KEY) to replace the
-# typed request with a generated command. The command is never executed.
+# hey-shell for zsh: press your key (default ctrl+g, set HEY_SHELL_KEY="alt+o" etc.)
+# to replace the typed request with a generated command. The command is never executed.
 _hey_shell_bin="${${(%):-%x}:A:h:h}/bin/hey-shell"
+
+_hey_shell_keyseq() {
+  local k=${HEY_SHELL_KEY:-ctrl+g}
+  local l=${(L)k}
+  case $l in
+    ctrl+?) print -r -- "^${l#ctrl+}" ;;
+    alt+?)  print -r -- "^[${l#alt+}" ;;
+    *)      print -r -- "$k" ;;
+  esac
+}
 
 _hey_shell_fill() {
   local request=$BUFFER cmd
@@ -16,4 +26,4 @@ _hey_shell_fill() {
 }
 
 zle -N _hey_shell_fill
-bindkey "${HEY_SHELL_KEY:-^G}" _hey_shell_fill
+bindkey "$(_hey_shell_keyseq)" _hey_shell_fill
