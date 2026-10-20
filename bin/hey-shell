@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# hey-shell: turn a plain-language request into one shell command via `claude -p`.
+#   hey-shell "list running container ids"   -> prints the command, never runs it
+#   hey-shell --danger "<command>"           -> exit 0 if the command looks destructive
+# Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL)
+set -euo pipefail
+
+if [ "${1:-}" = "--danger" ]; then
+  printf '%s' "${2:-}" | grep -Eq '(^|[^[:alnum:]_])(sudo|dd|mkfs[.[:alnum:]]*|shutdown|reboot)([^[:alnum:]_]|$)|rm[[:space:]]+-[[:alnum:]]*[rf]|docker[[:space:]]+system[[:space:]]+prune|>[[:space:]]*/dev/(sd|nvme|disk)'
+  exit
+fi
+
+request="$*"
+[ -n "$request" ] || { echo "usage: hey-shell <request>" >&2; exit 2; }
+command -v claude >/dev/null || { echo "hey-shell: 'claude' CLI not found in PATH" >&2; exit 127; }
+
+case "$(uname -s)" in
+  Darwin) os="macOS (BSD userland, not GNU: avoid GNU-only flags)" ;;
+  Linux)  if grep -qi microsoft /proc/version 2>/dev/null; then os="Linux (WSL2)"; else os="Linux (GNU userland)"; fi ;;
+  *)      os="$(uname -s)" ;;
+esac
+shell_name="${HEY_SHELL_TARGET:-$(basename "${SHELL:-bash}")}"
+
+prompt="Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. Environment: $os, $shell_name, current directory $PWD. Task: $request"
+
+claude -p --model "${HEY_SHELL_MODEL:-haiku}" "$prompt" | sed -e '/^```/d' -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d'

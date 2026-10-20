@@ -1,0 +1,11 @@
+{
+  "name": "hey-shell",
+  "owner": { "name": "alparslanpolat" },
+  "plugins": [
+    {
+      "name": "hey-shell",
+      "source": "./",
+      "description": "Turn plain-language requests into shell commands placed on your prompt for review"
+    }
+  ]
+}
