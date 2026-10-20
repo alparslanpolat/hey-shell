@@ -1,4 +1,4 @@
-# hey-shell
+<h1 align="center"><img src="docs/assets/banner.png" alt="hey-shell" width="640"></h1>
 
 ![hey-shell: your words, shell commands](docs/assets/preview.png)
 
