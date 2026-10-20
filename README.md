@@ -1,5 +1,7 @@
 # hey-shell
 
+![hey-shell: your words, shell commands](docs/assets/preview.png)
+
 Type what you want in plain language, press **Ctrl+G**, and your prompt line is replaced with the shell command. It is **never executed for you**: you review, edit and press Enter.
 
 ```
