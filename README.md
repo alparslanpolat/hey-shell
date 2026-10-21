@@ -34,10 +34,10 @@ A plugin cannot bind keys in your shell by itself, so `/hey-shell:install` runs 
 
 ## Explain a command first
 
-`hey-shell --explain "<request>"` prints the command, a short plain-language explanation, and its risk rating, without touching your prompt. The installer puts `hey-shell` on your `PATH`; if you installed an older version, re-run `./install.sh --key <your key>` to add it.
+`hey-shell -e "<request>"` (or `--explain`) prints the command, a short plain-language explanation, and its risk rating, without touching your prompt. The installer puts `hey-shell` on your `PATH`; if you installed an older version, re-run `./install.sh --key <your key>` to add it.
 
 ```
-$ hey-shell --explain "delete all stopped docker containers"
+$ hey-shell -e "delete all stopped docker containers"
 docker ps -aq -f status=exited | xargs -r docker rm
 
 Lists all exited containers and removes them. Removal is permanent, but images and named volumes are kept.

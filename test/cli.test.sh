@@ -41,6 +41,8 @@ FAKE_STATUS=0 FAKE_OUT='```bash\ndocker ps -q\n```' expect "strips fences" "dock
 FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain text" "Lists the IDs of running containers." --explain list containers
 FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain low risk" "risk: low" --explain list containers
 FAKE_STATUS=0 FAKE_OUT='rm -rf build\n\nDeletes the build directory.' expect "explain high risk" "risk: high (force or recursive delete)" --explain clean build
+FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "-e short flag" "risk: low" -e list containers
+expect "-r short flag" "force or recursive delete" -r "rm -rf x"
 
 # prompt rules reach the model
 FAKE_OUT="ls" "$bin" list files >/dev/null 2>&1
@@ -52,8 +54,8 @@ done
 # no request -> logo + usage on stderr, exit 2; --help -> same on stdout, exit 0
 total=$((total + 1))
 "$bin" >/dev/null 2>&1; [ $? -eq 2 ] || { echo "FAIL no-arg exit code should be 2"; fail=$((fail + 1)); }
-expect "no-arg usage" "usage:  hey-shell [--explain] <request>"
-expect "help usage" "usage:  hey-shell [--explain] <request>" --help
+expect "no-arg usage" "usage:  hey-shell [-e | --explain] <request>"
+expect "help usage" "usage:  hey-shell [-e | --explain] <request>" --help
 expect "help logo" "your words, shell commands" -h
 expect "help logo art" "'---.  .-----'  | | | |  __/ |_| |_____" --help
 total=$((total + 1))

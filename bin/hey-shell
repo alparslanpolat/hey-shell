@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # hey-shell: turn a plain-language request into one shell command via `claude -p`.
 #   hey-shell "list running container ids"   -> prints the command, never runs it
-#   hey-shell --explain "restart postgres"   -> command, a short explanation, and its risk rating
-#   hey-shell --risk "<command>"             -> prints low|medium|high, then the reason when not low
+#   hey-shell -e "restart postgres"          -> command, a short explanation, and its risk rating (long form: --explain)
+#   hey-shell -r "<command>"                 -> prints low|medium|high, then the reason when not low (long form: --risk)
 #   hey-shell --danger "<command>"           -> exit 0 if the risk is medium or high
-#   hey-shell [--help]                       -> logo and usage (exit 2 when no request was given)
+#   hey-shell [-h]                           -> logo and usage (long form: --help; exit 2 when no request was given)
 # Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL),
 #      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use)
 set -euo pipefail
@@ -54,7 +54,7 @@ case "${1:-}" in
     hey_shell_banner
     hey_shell_usage
     exit 0 ;;
-  --risk)
+  --risk|-r)
     hey_shell_risk "${2:-}"
     printf '%s\n' "$HEY_SHELL_RISK_LEVEL"
     [ "$HEY_SHELL_RISK_LEVEL" = low ] || printf '%s\n' "$HEY_SHELL_RISK_REASON"
@@ -66,7 +66,7 @@ case "${1:-}" in
 esac
 
 explain=0
-if [ "${1:-}" = "--explain" ]; then explain=1; shift; fi
+case "${1:-}" in --explain|-e) explain=1; shift ;; esac
 
 request="$*"
 [ -n "$request" ] || { hey_shell_banner >&2; hey_shell_usage >&2; exit 2; }
