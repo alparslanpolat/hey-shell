@@ -38,5 +38,17 @@ _hey_shell_fill() {
   _hey_shell_warn "$cmd"
 }
 
+# `hey-shell -e ...` explains, then leaves the command on the next prompt, ready to edit or run.
+hey-shell() {
+  case "${1:-}" in
+    -e|--explain)
+      local out
+      out=$(command hey-shell "$@") || return $?
+      print -r -- "$out"
+      print -rz -- "${out%%$'\n'*}" ;;
+    *) command hey-shell "$@" ;;
+  esac
+}
+
 zle -N _hey_shell_fill
 bindkey "$(_hey_shell_keyseq)" _hey_shell_fill

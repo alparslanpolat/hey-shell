@@ -40,4 +40,28 @@ _hey_shell_fill() {
   _hey_shell_warn "$cmd"
 }
 
+# Put a single-line command on the next prompt. Readline has no `print -z`, so bind the reply the
+# terminal sends to a status query (ESC[5n -> ESC[0n) to a macro that types the command.
+_hey_shell_prefill() {
+  local cmd=$1
+  [[ $- == *i* ]] || return 0
+  case $cmd in ''|*$'\n'*) return 0 ;; esac
+  cmd=${cmd//\\/\\\\}
+  cmd=${cmd//\"/\\\"}
+  bind "\"\\e[0n\": \"$cmd\""
+  printf '\e[5n'
+}
+
+# `hey-shell -e ...` explains, then leaves the command on the next prompt, ready to edit or run.
+hey-shell() {
+  case "${1:-}" in
+    -e|--explain)
+      local out
+      out=$(command hey-shell "$@") || return $?
+      printf '%s\n' "$out"
+      _hey_shell_prefill "${out%%$'\n'*}" ;;
+    *) command hey-shell "$@" ;;
+  esac
+}
+
 [[ $- == *i* ]] && bind -x "\"$(_hey_shell_keyseq)\": _hey_shell_fill"

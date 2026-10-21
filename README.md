@@ -34,7 +34,7 @@ A plugin cannot bind keys in your shell by itself, so `/hey-shell:install` runs 
 
 ## Explain a command first
 
-`hey-shell -e "<request>"` (or `--explain`) prints the command, a short plain-language explanation, and its risk rating, without touching your prompt. The installer puts `hey-shell` on your `PATH`; if you installed an older version, re-run `./install.sh --key <your key>` to add it.
+`hey-shell -e "<request>"` (or `--explain`) prints the command, a short plain-language explanation, and its risk rating. The command is then left on your next prompt line, ready to edit and run with Enter (it is never run for you). The installer puts `hey-shell` on your `PATH` and loads this behavior; if you installed an older version, re-run `./install.sh --key <your key>` to add it.
 
 ```
 $ hey-shell -e "delete all stopped docker containers"
@@ -44,6 +44,8 @@ Lists all exited containers and removes them. Removal is permanent, but images a
 
 risk: medium (stops or removes containers)
 ```
+
+Placeholders such as `<branch-name>` are left in the prefilled line for you to replace. In zsh the prefill uses `print -z`. In bash it relies on the terminal answering a status query (`ESC[5n`), which most terminals do; if yours doesn't, you just get the printed output without the prefill.
 
 Generated commands favor portable, read-only forms and avoid `sudo` and destructive flags unless you ask for them in the request.
 
