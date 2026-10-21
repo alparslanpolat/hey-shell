@@ -25,6 +25,7 @@ hey_shell_usage() {
   cat <<USAGE
 usage:  hey-shell [-e | --explain] <request>
         hey-shell [-r | --risk] "<command>"
+        hey-shell [-c | --check] "<command>"
         hey-shell [-h | --help]
 
 At your prompt, type a request and press ${HEY_SHELL_KEY:-ctrl+g}.

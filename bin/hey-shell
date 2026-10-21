@@ -4,14 +4,18 @@
 #   hey-shell -e "restart postgres"          -> command, a short explanation, and its risk rating (long form: --explain)
 #   hey-shell -r "<command>"                 -> prints low|medium|high, then the reason when not low (long form: --risk)
 #   hey-shell --danger "<command>"           -> exit 0 if the risk is medium or high
+#   hey-shell -c "<command>"                 -> predicts whether the command would fail, without running it (long form: --check)
 #   hey-shell [-h]                           -> logo and usage (long form: --help; exit 2 when no request was given)
 # Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL),
-#      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use)
+#      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use),
+#      HEY_SHELL_CHECK (default: off; 1 = also predict failure after --explain and on the key binding)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/risk.sh
 source "$root/lib/risk.sh"
+# shellcheck source=../lib/check.sh
+source "$root/lib/check.sh"
 # shellcheck source=../lib/banner.sh
 source "$root/lib/banner.sh"
 
@@ -59,6 +63,11 @@ case "${1:-}" in
     printf '%s\n' "$HEY_SHELL_RISK_LEVEL"
     [ "$HEY_SHELL_RISK_LEVEL" = low ] || printf '%s\n' "$HEY_SHELL_RISK_REASON"
     exit 0 ;;
+  --check|-c)
+    hey_shell_check "${2:-}"
+    printf '%s\n' "$HEY_SHELL_CHECK_LEVEL"
+    [ "$HEY_SHELL_CHECK_LEVEL" = ok ] || printf '%s\n' "$HEY_SHELL_CHECK_REASON"
+    exit 0 ;;
   --danger)
     hey_shell_risk "${2:-}"
     [ "$HEY_SHELL_RISK_LEVEL" != low ] && exit 0
@@ -99,4 +108,12 @@ if [ "$HEY_SHELL_RISK_LEVEL" = low ]; then
   printf '\nrisk: low\n'
 else
   printf '\nrisk: %s (%s)\n' "$HEY_SHELL_RISK_LEVEL" "$HEY_SHELL_RISK_REASON"
+fi
+if [ "${HEY_SHELL_CHECK:-0}" = 1 ]; then
+  hey_shell_check "$command_line"
+  if [ "$HEY_SHELL_CHECK_LEVEL" = ok ]; then
+    printf 'check: ok\n'
+  else
+    printf 'check: would likely fail: %s\n' "$HEY_SHELL_CHECK_REASON"
+  fi
 fi

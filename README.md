@@ -51,11 +51,34 @@ Generated commands favor portable, read-only forms and avoid `sudo` and destruct
 
 If something goes wrong you get one actionable line instead of a stack trace: Claude Code missing (with the install link), not logged in, rate limited, or unreachable.
 
+## Predict failures (optional, off by default)
+
+`hey-shell -c "<command>"` (or `--check`) predicts whether a command would fail, without running it. Set `HEY_SHELL_CHECK=1` in your rc file to get the same prediction automatically after `-e` and on the key binding. Example, from inside a shell that is not in a tmux session:
+
+```
+$ hey-shell -e how to split terminal into 4
+tmux split-window -h \; split-window -v \; select-pane -t 0 \; split-window -v
+
+This splits the current tmux window into a 2x2 grid of four panes.
+
+risk: low
+check: would likely fail: no tmux server is running; start tmux first
+```
+
+What it looks at:
+
+- **Syntax:** the command is parsed with `bash -n` or `zsh -n`, which never executes it.
+- **Programs:** every program in a pipeline or `&&` chain must exist as an executable, builtin, keyword, or one of your own aliases and functions.
+- **Environment:** `git` needs a repository, `tmux` needs a running server, `docker` needs its socket. These use read-only probes (`git rev-parse`, `tmux list-sessions`, a socket test).
+
+It is a prediction, not a guarantee. It cannot know whether a file exists, whether you have permission, or what a program does with its arguments, and it skips commands behind `sudo -u ...` or other wrapper options. The only way to be sure a command works is to run it, which hey-shell will never do for you.
+
 ## Configuration
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `HEY_SHELL_MODEL` | `haiku` | model passed to `claude --model` |
+| `HEY_SHELL_CHECK` | off | `1` predicts failures after `-e` and on the key binding (see above) |
 | `HEY_SHELL_CLAUDE` | `claude` | the CLI to call; set it for a custom path (the tests use it to inject a fake) |
 | `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
 
@@ -71,7 +94,7 @@ Commands are only placed on the prompt, never executed. Each generated command i
 | medium | yellow caution | `sudo`, `rm`, `kill`, `docker stop`, `systemctl restart`, `chown -R`, writes to `/etc` |
 | low | none | everything else |
 
-This is pattern matching, not a guarantee: it can miss risky commands and flag harmless ones, so always read the command before pressing Enter. The rules live in `lib/risk.sh`; run `./test/risk.test.sh` (and `./test/cli.test.sh` for the CLI behavior) after changing them, and `hey-shell --risk "<command>"` to check one by hand. Your request and current directory path are sent to the model.
+This is pattern matching, not a guarantee: it can miss risky commands and flag harmless ones, so always read the command before pressing Enter. The rules live in `lib/risk.sh`; run `./test/risk.test.sh` (plus `./test/cli.test.sh` for the CLI and `./test/check.test.sh` for the failure predictor) after changing them, and `hey-shell --risk "<command>"` to check one by hand. Your request and current directory path are sent to the model.
 
 ## License
 

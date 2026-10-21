@@ -23,6 +23,21 @@ _hey_shell_warn() {
   esac
 }
 
+# Opt-in (HEY_SHELL_CHECK=1): predict whether the command would fail. Never runs the command.
+_hey_shell_check_note() {
+  [ "${HEY_SHELL_CHECK:-0}" = 1 ] || return 0
+  local res level reason names
+  names=$(compgen -A alias -A function)
+  res=$(HEY_SHELL_TARGET=bash HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --check "$1")
+  level=${res%%$'\n'*}
+  reason=${res#*$'\n'}
+  if [ "$level" = ok ]; then
+    printf '\033[2m[hey-shell] check: ok\033[0m\n'
+  else
+    printf '\033[1;31m[hey-shell] check: would likely fail: %s\033[0m\n' "$reason"
+  fi
+}
+
 _hey_shell_fill() {
   local request=$READLINE_LINE cmd
   [ -z "$request" ] && return
@@ -38,6 +53,7 @@ _hey_shell_fill() {
   READLINE_LINE=$cmd
   READLINE_POINT=${#cmd}
   _hey_shell_warn "$cmd"
+  _hey_shell_check_note "$cmd"
 }
 
 # Put a single-line command on the next prompt. Readline has no `print -z`, so bind the reply the
@@ -56,8 +72,9 @@ _hey_shell_prefill() {
 hey-shell() {
   case "${1:-}" in
     -e|--explain)
-      local out
-      out=$(command hey-shell "$@") || return $?
+      local out names=''
+      [ "${HEY_SHELL_CHECK:-0}" = 1 ] && names=$(compgen -A alias -A function)
+      out=$(HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || return $?
       printf '%s\n' "$out"
       _hey_shell_prefill "${out%%$'\n'*}" ;;
     *) command hey-shell "$@" ;;

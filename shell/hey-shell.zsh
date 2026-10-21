@@ -12,13 +12,26 @@ _hey_shell_keyseq() {
   esac
 }
 
-_hey_shell_warn() {
+_hey_shell_risk_msg() {
   local risk=$("$_hey_shell_bin" --risk "$1")
   local level=${risk%%$'\n'*} reason=${risk#*$'\n'}
   case $level in
-    high)   zle -M "hey-shell: HIGH RISK: $reason. Read it carefully before pressing Enter." ;;
-    medium) zle -M "hey-shell: caution: $reason." ;;
+    high)   print -r -- "hey-shell: HIGH RISK: $reason. Read it carefully before pressing Enter." ;;
+    medium) print -r -- "hey-shell: caution: $reason." ;;
   esac
+}
+
+# Opt-in (HEY_SHELL_CHECK=1): predict whether the command would fail. Never runs the command.
+_hey_shell_check_msg() {
+  [[ ${HEY_SHELL_CHECK:-0} == 1 ]] || return 0
+  local names="$(print -l -- ${(k)aliases} ${(k)functions})"
+  local res=$(HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --check "$1")
+  local level=${res%%$'\n'*} reason=${res#*$'\n'}
+  if [[ $level == ok ]]; then
+    print -r -- "hey-shell: check ok"
+  else
+    print -r -- "hey-shell: check: would likely fail: $reason"
+  fi
 }
 
 _hey_shell_fill() {
@@ -35,15 +48,18 @@ _hey_shell_fill() {
   [[ -z $cmd ]] && return
   BUFFER=$cmd
   CURSOR=${#BUFFER}
-  _hey_shell_warn "$cmd"
+  local note="$(_hey_shell_risk_msg "$cmd")" chk="$(_hey_shell_check_msg "$cmd")"
+  [[ -n $chk ]] && note="${note:+$note$'\n'}$chk"
+  [[ -n $note ]] && zle -M "$note"
 }
 
 # `hey-shell -e ...` explains, then leaves the command on the next prompt, ready to edit or run.
 hey-shell() {
   case "${1:-}" in
     -e|--explain)
-      local out
-      out=$(command hey-shell "$@") || return $?
+      local out names=''
+      [[ ${HEY_SHELL_CHECK:-0} == 1 ]] && names="$(print -l -- ${(k)aliases} ${(k)functions})"
+      out=$(HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || return $?
       print -r -- "$out"
       print -rz -- "${out%%$'\n'*}" ;;
     *) command hey-shell "$@" ;;

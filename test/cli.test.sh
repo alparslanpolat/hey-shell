@@ -44,6 +44,14 @@ FAKE_STATUS=0 FAKE_OUT='rm -rf build\n\nDeletes the build directory.' expect "ex
 FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "-e short flag" "risk: low" -e list containers
 expect "-r short flag" "force or recursive delete" -r "rm -rf x"
 
+# opt-in failure check after --explain
+FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' HEY_SHELL_CHECK=1 expect "explain check fails" "check: would likely fail: 'nonexistent-prog-xyz' not found" --explain do thing
+FAKE_OUT='ls -la\n\nLists files.' HEY_SHELL_CHECK=1 expect "explain check ok" "check: ok" --explain list files
+total=$((total + 1))
+case $(FAKE_OUT='nonexistent-prog-xyz\n\nDoes a thing.' "$bin" --explain do thing 2>&1) in
+  *"check:"*) echo "FAIL the check must be off unless HEY_SHELL_CHECK=1"; fail=$((fail + 1)) ;;
+esac
+
 # prompt rules reach the model
 FAKE_OUT="ls" "$bin" list files >/dev/null 2>&1
 for want in "read-only" "sudo" "unless the task explicitly asks"; do
