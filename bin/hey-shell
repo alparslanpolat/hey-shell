@@ -77,6 +77,12 @@ $err"
   [ -n "$out" ] || die "Claude returned an empty reply. Try rephrasing the request"
 }
 
+# The hse, hsr and hsc aliases put -e, -r or -c first: let `hse -U`, `hsr -h` etc. reach the option itself.
+case "${1:-}" in
+  --explain|-e|--risk|-r|--check|-c)
+    case "${2:-}" in --help|-h|--version|-V|--update|-U) shift ;; esac ;;
+esac
+
 case "${1:-}" in
   --help|-h)
     hey_shell_colors

@@ -165,6 +165,10 @@ case $got in *"updated: "*" → 9.9.9"*) ;; *) echo "FAIL --update should pull t
 got=$("$tmp/origin.src/bin/hey-shell" --update 2>&1); total=$((total + 1))
 case $got in *"is not a git checkout"*) ;; *) echo "FAIL --update outside a checkout: $got"; fail=$((fail + 1)) ;; esac
 expect "help lists update" "-U, --update    update to the latest version" --help
+expect "hse -h" "usage: hey-shell [options] <request>" --explain -h
+expect "hsr -V" "hey-shell " -r -V
+got=$("$tmp/clone/bin/hey-shell" -e -U 2>&1); total=$((total + 1))
+case $got in *"is up to date"*) ;; *) echo "FAIL hse -U should update: $got"; fail=$((fail + 1)) ;; esac
 
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]
