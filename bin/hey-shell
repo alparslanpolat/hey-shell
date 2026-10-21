@@ -96,7 +96,7 @@ case "${1:-}" in
 esac
 
 request="$*"
-[ -n "$request" ] || { { hey_shell_colors; hey_shell_heading; hey_shell_usage; } >&2; exit 2; }
+[ -n "$request" ] || { { hey_shell_colors; hey_shell_banner; hey_shell_usage; } >&2; exit 2; }
 
 case "$(uname -s)" in
   Darwin) os="macOS (BSD userland, not GNU: avoid GNU-only flags)" ;;

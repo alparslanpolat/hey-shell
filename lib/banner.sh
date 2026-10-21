@@ -18,14 +18,7 @@ hey_shell_banner() {
   while IFS= read -r line; do
     printf '%s%s%s%s%s%s\n' "$lime" "${line:0:_hs_logo_split}" "$off" "$white" "${line:_hs_logo_split}" "$off"
   done < "$_hs_lib_dir/logo.txt"
-  printf '\n  your words, shell commands\n\n'
-}
-
-# One-line heading for a bare `hey-shell`; the full logo is kept for --help.
-hey_shell_heading() {
-  local lime='' off=''
-  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then lime=$'\033[38;5;155m'; off=$'\033[0m'; fi
-  printf '\n%shey-shell%s %s· your words, shell commands%s\n\n' "$lime" "$off" "$C_MUTED" "$C_OFF"
+  printf '\n  %shey-shell%s %s· your words, shell commands%s\n\n' "$lime" "$off" "${C_MUTED:-}" "${C_OFF:-}"
 }
 
 # Needs hey_shell_colors to have run (hints are gray).
