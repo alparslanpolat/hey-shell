@@ -70,10 +70,11 @@ is_installed && remove_block
   echo ""
   echo "$begin"
   echo "export HEY_SHELL_KEY=\"$key\""
+  echo "export PATH=\"$root/bin:\$PATH\""
   echo "source \"$root/shell/hey-shell.$target\""
   echo "$end"
 } >> "$rc"
-echo "installed in $rc with key $key. Run: source $rc   then type a request and press $key"
+echo "installed in $rc with key $key. Run: source $rc   then type a request and press $key (or run: hey-shell --explain \"<request>\")"
 [ "$(uname -s)" = Darwin ] && case "$key" in
   alt+*) echo "note: on macOS enable 'Use Option as Meta key' in your terminal, or alt+<key> types a symbol" ;;
 esac
