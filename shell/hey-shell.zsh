@@ -12,12 +12,12 @@ _hey_shell_keyseq() {
   esac
 }
 
-# "Risk: ... · Check: ..." under the command. The check is on by default (turn off with HEY_SHELL_CHECK=0)
+# The labeled box and "Risk: ... · Check: ..." under the command (plain: zle -M cannot show color). The check is on by default (turn off with HEY_SHELL_CHECK=0)
 # and never runs the command.
 _hey_shell_status_msg() {
   local names=''
   [[ ${HEY_SHELL_CHECK:-1} == 0 ]] || names="$(print -l -- ${(k)aliases} ${(k)functions})"
-  HEY_SHELL_COLOR=never HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1"
+  COLUMNS=$COLUMNS HEY_SHELL_COLOR=never HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1"
 }
 
 _hey_shell_fill() {

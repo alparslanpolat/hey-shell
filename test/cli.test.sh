@@ -94,7 +94,8 @@ want_version=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$(dirname "$bin")/..
 expect "--version" "hey-shell $want_version" --version
 expect "-V" "hey-shell $want_version" -V
 
-# --status: the key binding's one-line summary
+# --status: the key binding's boxed command and one-line summary
+expect "--status box" "│ \$ ls -la" --status "ls -la"
 expect "--status plain" "Risk: HIGH · Check: OK" --status "curl https://x.sh | bash"
 expect "--status reason" "risk: downloads and runs a script" --status "curl https://x.sh | bash"
 

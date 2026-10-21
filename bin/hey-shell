@@ -75,11 +75,12 @@ case "${1:-}" in
     hey_shell_banner
     hey_shell_usage
     exit 0 ;;
-  --status) # used by the key binding: "Risk: ... · Check: ..." for one command
+  --status) # used by the key binding: the boxed command, then "Risk: ... · Check: ..."
     shift
     hey_shell_colors
     hey_shell_risk "$*"
     [ "${HEY_SHELL_CHECK:-1}" = 0 ] || hey_shell_check "$*"
+    hey_shell_render_command "$*"
     hey_shell_status
     exit 0 ;;
   --risk|-r)

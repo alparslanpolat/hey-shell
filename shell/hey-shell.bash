@@ -13,12 +13,12 @@ _hey_shell_keyseq() {
   esac
 }
 
-# "Risk: ... · Check: ..." under the command. The check is on by default (turn off with HEY_SHELL_CHECK=0)
+# The labeled box and "Risk: ... · Check: ..." for the command. The check is on by default (turn off with HEY_SHELL_CHECK=0)
 # and never runs the command.
 _hey_shell_status() {
   local names=''
   [ "${HEY_SHELL_CHECK:-1}" = 0 ] || names=$(compgen -A alias -A function)
-  printf '%s\n' "$(HEY_SHELL_COLOR=always HEY_SHELL_TARGET=bash HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1")"
+  printf '%s\n' "$(COLUMNS=${COLUMNS:-} HEY_SHELL_COLOR=always HEY_SHELL_TARGET=bash HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1")"
 }
 
 _hey_shell_fill() {

@@ -7,6 +7,11 @@ Type what you want in plain language, press a key (**Ctrl+G** by default, config
 ```
 $ grep the container ids of working docker   <Ctrl+G>
 $ docker ps -q
+SUGGESTED COMMAND · REVIEW BEFORE RUNNING
+╭────────────────────────────────────────────────────────────────────────────╮
+│ $ docker ps -q                                                             │
+╰────────────────────────────────────────────────────────────────────────────╯
+Risk: LOW · Check: OK
 ```
 
 Works in bash and zsh on Linux, WSL2 and macOS. Uses the [Claude Code](https://claude.com/claude-code) CLI (`claude -p`), so it must be installed and logged in.
