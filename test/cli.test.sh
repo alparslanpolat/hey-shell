@@ -49,9 +49,17 @@ for want in "read-only" "sudo" "unless the task explicitly asks"; do
   grep -q -- "$want" "$tmp/prompt" || { printf 'FAIL prompt is missing: %s\n' "$want"; fail=$((fail + 1)); }
 done
 
-# no request -> usage, exit 2
+# no request -> logo + usage on stderr, exit 2; --help -> same on stdout, exit 0
 total=$((total + 1))
 "$bin" >/dev/null 2>&1; [ $? -eq 2 ] || { echo "FAIL no-arg exit code should be 2"; fail=$((fail + 1)); }
+expect "no-arg usage" "usage:  hey-shell [--explain] <request>"
+expect "help usage" "usage:  hey-shell [--explain] <request>" --help
+expect "help logo" "your words, shell commands" -h
+expect "help logo art" "'---.  .-----'  | | | |  __/ |_| |_____" --help
+total=$((total + 1))
+"$bin" --help >/dev/null 2>&1; [ $? -eq 0 ] || { echo "FAIL --help exit code should be 0"; fail=$((fail + 1)); }
+total=$((total + 1))
+case $("$bin" --help) in *$'\033'*) echo "FAIL logo emits color codes when not on a terminal"; fail=$((fail + 1)) ;; esac
 
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]

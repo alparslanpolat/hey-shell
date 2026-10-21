@@ -4,6 +4,7 @@
 #   hey-shell --explain "restart postgres"   -> command, a short explanation, and its risk rating
 #   hey-shell --risk "<command>"             -> prints low|medium|high, then the reason when not low
 #   hey-shell --danger "<command>"           -> exit 0 if the risk is medium or high
+#   hey-shell [--help]                       -> logo and usage (exit 2 when no request was given)
 # Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL),
 #      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use)
 set -euo pipefail
@@ -11,6 +12,8 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/risk.sh
 source "$root/lib/risk.sh"
+# shellcheck source=../lib/banner.sh
+source "$root/lib/banner.sh"
 
 claude_bin="${HEY_SHELL_CLAUDE:-claude}"
 out=""
@@ -47,6 +50,10 @@ $err"
 }
 
 case "${1:-}" in
+  --help|-h)
+    hey_shell_banner
+    hey_shell_usage
+    exit 0 ;;
   --risk)
     hey_shell_risk "${2:-}"
     printf '%s\n' "$HEY_SHELL_RISK_LEVEL"
@@ -62,7 +69,7 @@ explain=0
 if [ "${1:-}" = "--explain" ]; then explain=1; shift; fi
 
 request="$*"
-[ -n "$request" ] || { echo "usage: hey-shell [--explain] <request>" >&2; exit 2; }
+[ -n "$request" ] || { hey_shell_banner >&2; hey_shell_usage >&2; exit 2; }
 
 case "$(uname -s)" in
   Darwin) os="macOS (BSD userland, not GNU: avoid GNU-only flags)" ;;
