@@ -1,14 +1,50 @@
 #!/usr/bin/env bash
 # hey-shell: turn a plain-language request into one shell command via `claude -p`.
 #   hey-shell "list running container ids"   -> prints the command, never runs it
+#   hey-shell --explain "restart postgres"   -> command, a short explanation, and its risk rating
 #   hey-shell --risk "<command>"             -> prints low|medium|high, then the reason when not low
 #   hey-shell --danger "<command>"           -> exit 0 if the risk is medium or high
-# Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL)
+# Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL),
+#      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/risk.sh
 source "$root/lib/risk.sh"
+
+claude_bin="${HEY_SHELL_CLAUDE:-claude}"
+out=""
+
+die() { echo "hey-shell: $1" >&2; exit 1; }
+
+# Turn a failed `claude -p` run into one actionable line.
+explain_failure() {
+  local text first
+  text="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  case $text in
+    *"/login"*|*"not logged in"*|*"invalid api key"*|*authentication*|*unauthorized*|*401*)
+      die "Claude Code is not logged in. Run 'claude' once, complete /login, then try again" ;;
+    *"rate limit"*|*"usage limit"*|*429*|*overloaded*|*529*)
+      die "Claude is rate limited or overloaded right now. Wait a moment and try again" ;;
+    *enotfound*|*econnrefused*|*etimedout*|*"fetch failed"*|*"could not connect"*|*"unable to connect"*|*network*)
+      die "Could not reach the Claude API. Check your internet connection or proxy" ;;
+  esac
+  first="$(printf '%s' "$1" | sed '/^[[:space:]]*$/d' | head -1)"
+  die "claude failed${first:+: $first}"
+}
+
+# ask_claude <prompt>: sets $out, or exits with a clear message.
+ask_claude() {
+  local errf status=0 err
+  command -v "$claude_bin" >/dev/null || die "Claude Code CLI not found in PATH. Install it: https://claude.com/claude-code"
+  errf="$(mktemp)"
+  out="$("$claude_bin" -p --model "${HEY_SHELL_MODEL:-haiku}" "$1" 2>"$errf")" || status=$?
+  err="$(cat "$errf")"
+  rm -f "$errf"
+  [ "$status" -eq 0 ] || explain_failure "$out
+$err"
+  [ -n "$out" ] || die "Claude returned an empty reply. Try rephrasing the request"
+}
 
 case "${1:-}" in
   --risk)
@@ -22,9 +58,11 @@ case "${1:-}" in
     exit 1 ;;
 esac
 
+explain=0
+if [ "${1:-}" = "--explain" ]; then explain=1; shift; fi
+
 request="$*"
-[ -n "$request" ] || { echo "usage: hey-shell <request>" >&2; exit 2; }
-command -v claude >/dev/null || { echo "hey-shell: 'claude' CLI not found in PATH" >&2; exit 127; }
+[ -n "$request" ] || { echo "usage: hey-shell [--explain] <request>" >&2; exit 2; }
 
 case "$(uname -s)" in
   Darwin) os="macOS (BSD userland, not GNU: avoid GNU-only flags)" ;;
@@ -33,6 +71,25 @@ case "$(uname -s)" in
 esac
 shell_name="${HEY_SHELL_TARGET:-$(basename "${SHELL:-bash}")}"
 
-prompt="Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. Environment: $os, $shell_name, current directory $PWD. Task: $request"
+context="Environment: $os, $shell_name, current directory $PWD."
+rules="Prefer portable, read-only commands. Do not use sudo or destructive commands (rm, kill, force flags, drops, prune) unless the task explicitly asks for them."
 
-claude -p --model "${HEY_SHELL_MODEL:-haiku}" "$prompt" | sed -e '/^```/d' -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d'
+if [ "$explain" = 0 ]; then
+  ask_claude "Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. $context $rules Task: $request"
+  printf '%s\n' "$out" | sed -e '/^```/d' -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d'
+  exit 0
+fi
+
+ask_claude "Reply in this exact format: line 1 is exactly one $shell_name command (no markdown, no backticks); line 2 is blank; then a plain-language explanation of at most three short sentences covering what the command does and any risk. $context $rules Task: $request"
+cleaned="$(printf '%s\n' "$out" | sed -e '/^```/d' -e 's/[[:space:]]*$//' | sed '/./,$!d')"
+command_line="$(printf '%s\n' "$cleaned" | head -1 | sed 's/^[[:space:]]*//')"
+explanation="$(printf '%s\n' "$cleaned" | sed '1d' | sed '/./,$!d')"
+hey_shell_risk "$command_line"
+
+printf '%s\n' "$command_line"
+[ -z "$explanation" ] || printf '\n%s\n' "$explanation"
+if [ "$HEY_SHELL_RISK_LEVEL" = low ]; then
+  printf '\nrisk: low\n'
+else
+  printf '\nrisk: %s (%s)\n' "$HEY_SHELL_RISK_LEVEL" "$HEY_SHELL_RISK_REASON"
+fi

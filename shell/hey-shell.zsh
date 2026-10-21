@@ -25,7 +25,13 @@ _hey_shell_fill() {
   local request=$BUFFER cmd
   [[ -z $request ]] && return
   zle -R "hey-shell: thinking..."
-  cmd=$(HEY_SHELL_TARGET=zsh "$_hey_shell_bin" "$request") || { zle -M "hey-shell: failed"; return }
+  local errf=$(mktemp)
+  cmd=$(HEY_SHELL_TARGET=zsh "$_hey_shell_bin" "$request" 2>"$errf") || {
+    zle -M "$(<$errf)"
+    rm -f "$errf"
+    return
+  }
+  rm -f "$errf"
   [[ -z $cmd ]] && return
   BUFFER=$cmd
   CURSOR=${#BUFFER}

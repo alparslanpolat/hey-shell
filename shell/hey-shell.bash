@@ -26,7 +26,14 @@ _hey_shell_warn() {
 _hey_shell_fill() {
   local request=$READLINE_LINE cmd
   [ -z "$request" ] && return
-  cmd=$(HEY_SHELL_TARGET=bash "$_hey_shell_bin" "$request") || return
+  local errf
+  errf=$(mktemp)
+  cmd=$(HEY_SHELL_TARGET=bash "$_hey_shell_bin" "$request" 2>"$errf") || {
+    printf '\n\033[31m%s\033[0m\n' "$(cat "$errf")"
+    rm -f "$errf"
+    return
+  }
+  rm -f "$errf"
   [ -z "$cmd" ] && return
   READLINE_LINE=$cmd
   READLINE_POINT=${#cmd}

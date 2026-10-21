@@ -32,11 +32,29 @@ The installer appends one marked block to your rc file. Keys are `ctrl+<letter|d
 
 A plugin cannot bind keys in your shell by itself, so `/hey-shell:install` runs the installer above. The plugin also adds `/hey-shell:sh <request>` to get a command inside Claude Code.
 
+## Explain a command first
+
+`bin/hey-shell --explain "<request>"` prints the command, a short plain-language explanation, and its risk rating, without touching your prompt. Put `bin/` on your `PATH` or call it by full path.
+
+```
+$ hey-shell --explain "delete all stopped docker containers"
+docker ps -aq -f status=exited | xargs -r docker rm
+
+Lists all exited containers and removes them. Removal is permanent, but images and named volumes are kept.
+
+risk: medium (stops or removes containers)
+```
+
+Generated commands favor portable, read-only forms and avoid `sudo` and destructive flags unless you ask for them in the request.
+
+If something goes wrong you get one actionable line instead of a stack trace: Claude Code missing (with the install link), not logged in, rate limited, or unreachable.
+
 ## Configuration
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `HEY_SHELL_MODEL` | `haiku` | model passed to `claude --model` |
+| `HEY_SHELL_CLAUDE` | `claude` | the CLI to call; set it for a custom path (the tests use it to inject a fake) |
 | `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
 
 Set `HEY_SHELL_MODEL` before the `source` line in your rc file; `HEY_SHELL_KEY` is written there by the installer.
@@ -51,7 +69,7 @@ Commands are only placed on the prompt, never executed. Each generated command i
 | medium | yellow caution | `sudo`, `rm`, `kill`, `docker stop`, `systemctl restart`, `chown -R`, writes to `/etc` |
 | low | none | everything else |
 
-This is pattern matching, not a guarantee: it can miss risky commands and flag harmless ones, so always read the command before pressing Enter. The rules live in `lib/risk.sh`; run `./test/risk.test.sh` after changing them, and `bin/hey-shell --risk "<command>"` to check one by hand. Your request and current directory path are sent to the model.
+This is pattern matching, not a guarantee: it can miss risky commands and flag harmless ones, so always read the command before pressing Enter. The rules live in `lib/risk.sh`; run `./test/risk.test.sh` (and `./test/cli.test.sh` for the CLI behavior) after changing them, and `bin/hey-shell --risk "<command>"` to check one by hand. Your request and current directory path are sent to the model.
 
 ## License
 
