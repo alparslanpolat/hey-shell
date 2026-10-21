@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034  # the results are globals read by bin/hey-shell
 # Predicts whether a generated command would fail, without running it. Sourced by bin/hey-shell.
 #   hey_shell_check "<command>"  sets HEY_SHELL_CHECK_LEVEL (ok|fail) and HEY_SHELL_CHECK_REASON.
 # The command is only parsed (`bash -n` / `zsh -n`). A few read-only probes look at the environment

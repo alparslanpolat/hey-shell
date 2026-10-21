@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034  # the results are globals read by bin/hey-shell
 # Terminal output for bin/hey-shell: color by purpose, wrapping, and the status line. Sourced by bin/hey-shell.
 #   hey_shell_colors          sets C_CMD C_MUTED C_AMBER C_RED C_GREEN C_OFF (empty when color is off)
 #   hey_shell_status          prints "Risk: MEDIUM · Check: OK" plus the reasons; run hey_shell_risk (and

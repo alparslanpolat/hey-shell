@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Checks install.sh against a throwaway HOME: ./test/install.test.sh   (exit 1 on any mismatch)
+# shellcheck disable=SC2034  # ok() evaluates its checks as strings, so shellcheck cannot see $out being read
 set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 installer="$root/install.sh"
@@ -11,6 +12,15 @@ new_home() { H="$tmp/home-$total"; mkdir -p "$H"; : > "$H/.zshrc"; rc="$H/.zshrc
 run() { HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh "$@" </dev/null 2>&1; }
 ok() { total=$((total + 1)); if ! eval "$1"; then printf 'FAIL %s\n  check: %s\n' "$2" "$1"; fail=$((fail + 1)); fi; }
 count() { grep -c -- "$1" "$rc" || true; }
+
+# Run "$@" on a pseudo-terminal (the installer only asks its questions on one), fed by this function's stdin.
+in_pty() {
+  if script --version 2>/dev/null | grep -q util-linux; then
+    script -qec "$(printf '%q ' "$@")" /dev/null   # GNU/Linux
+  else
+    script -q /dev/null "$@"                         # BSD/macOS
+  fi
+}
 
 new_home; run >/dev/null
 ok '[ "$(count "export HEY_SHELL_KEY=\"ctrl+g\"")" = 1 ]'      "default key is written"
@@ -34,7 +44,7 @@ ok '[[ $out == *"already defined"* ]]'                         "reports an exist
 ok '[ "$(count "^alias hs=")" = 1 ] && [ "$(count "KEEP=1")" = 1 ]' "leaves the manual alias and other lines alone"
 
 new_home
-out=$(run --alias "bad name"); status=$?
+out=$(run --alias "bad name")
 ok '[[ $out == *"invalid alias"* ]] && [ ! -s "$rc" ]'         "rejects an invalid alias and writes nothing"
 out=$(run --alias ls)
 ok '[[ $out == *"already exists"* ]] && [ "$(count "^alias ls=")" = 1 ]' "warns when the alias shadows a command"
@@ -62,16 +72,16 @@ ok '[[ $out == *"already exists"* ]] && [ "$(count "^alias cat=.hey-shell --risk
 
 if command -v script >/dev/null; then
   new_home
-  printf 'alt+o\n\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh" /dev/null >/dev/null 2>&1
+  printf 'alt+o\n\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh >/dev/null 2>&1
   ok '[ "$(count "^alias ")" = 4 ] && [ "$(count "alt+o")" = 1 ]' "interactive: Enter accepts the key and all four aliases"
   new_home
-  printf '\nn\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh" /dev/null >/dev/null 2>&1
+  printf '\nn\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh >/dev/null 2>&1
   ok '[ "$(count "^alias ")" = 0 ] && [ "$(count "ctrl+g")" = 1 ]' "interactive: n skips every alias"
   new_home; run --aliases >/dev/null
-  printf 'n\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh --key ctrl+g" /dev/null >/dev/null 2>&1
+  printf 'n\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh --key ctrl+g >/dev/null 2>&1
   ok '[ "$(count "^alias ")" = 0 ]' "interactive: n on a re-install removes the existing aliases"
   new_home
-  printf '\nc\n\nx\nn\nmycheck\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh" /dev/null >/dev/null 2>&1
+  printf '\nc\n\nx\nn\nmycheck\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh >/dev/null 2>&1
   ok '[ "$(count "^alias hs=.hey-shell.")" = 1 ] && [ "$(count "^alias x=.hey-shell --explain.")" = 1 ] && [ "$(count "--risk")" = 0 ] && [ "$(count "^alias mycheck=.hey-shell --check.")" = 1 ]' "interactive: c customizes each name, n skips one"
 fi
 

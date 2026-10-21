@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # hey-shell for bash: press your key (default ctrl+g, set HEY_SHELL_KEY="alt+o" etc.)
 # to replace the typed request with a generated command. The command is never executed.
 _hey_shell_bin="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bin/hey-shell"

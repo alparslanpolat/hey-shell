@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+# shellcheck disable=SC2034  # the results are globals read by bin/hey-shell
 # Risk classification for generated commands. Sourced by bin/hey-shell.
 #   hey_shell_risk "<command>"  sets HEY_SHELL_RISK_LEVEL (low|medium|high) and HEY_SHELL_RISK_REASON.
 # Pattern matching only: it can miss things and can flag harmless text. It is a prompt to read, not a guarantee.

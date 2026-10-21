@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # ASCII logo and usage text. Sourced by bin/hey-shell.
 #   hey_shell_banner  prints lib/logo.txt; colors only when stdout is a terminal and NO_COLOR is unset
 #   hey_shell_usage   prints the usage lines

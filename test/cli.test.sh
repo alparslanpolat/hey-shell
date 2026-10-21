@@ -48,11 +48,11 @@ expect "-r joins unquoted words" "force or recursive delete" -r rm -rf x
 expect "-c joins unquoted words" "'nonexistent-zz' not found" -c nonexistent-zz --help
 
 # failure check after --explain (on by default, HEY_SHELL_CHECK=0 turns it off)
-FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check fails" "Check: LIKELY FAIL" --explain do thing
-FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check reason" "check: 'nonexistent-prog-xyz' not found" --explain do thing
+FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check fails" "Check: LIKELY FAIL" --explain run a thing
+FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check reason" "check: 'nonexistent-prog-xyz' not found" --explain run a thing
 FAKE_OUT='ls -la\n\nLists files.' expect "explain check ok" "Risk: LOW · Check: OK" --explain list files
 total=$((total + 1))
-case $(FAKE_OUT='nonexistent-prog-xyz\n\nDoes a thing.' HEY_SHELL_CHECK=0 "$bin" --explain do thing 2>&1) in
+case $(FAKE_OUT='nonexistent-prog-xyz\n\nDoes a thing.' HEY_SHELL_CHECK=0 "$bin" --explain run a thing 2>&1) in
   *"Check:"*) echo "FAIL HEY_SHELL_CHECK=0 must turn the check off"; fail=$((fail + 1)) ;;
 esac
 
