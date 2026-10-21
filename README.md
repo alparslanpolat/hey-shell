@@ -51,9 +51,9 @@ Generated commands favor portable, read-only forms and avoid `sudo` and destruct
 
 If something goes wrong you get one actionable line instead of a stack trace: Claude Code missing (with the install link), not logged in, rate limited, or unreachable.
 
-## Predict failures (optional, off by default)
+## Predict failures (on by default)
 
-`hey-shell -c "<command>"` (or `--check`) predicts whether a command would fail, without running it. Set `HEY_SHELL_CHECK=1` in your rc file to get the same prediction automatically after `-e` and on the key binding. Example, from inside a shell that is not in a tmux session:
+`hey-shell -c "<command>"` (or `--check`) predicts whether a command would fail, without running it. The same prediction runs automatically after `-e` and on the key binding; set `HEY_SHELL_CHECK=0` in your rc file to turn that off. Example, from inside a shell that is not in a tmux session:
 
 ```
 $ hey-shell -e how to split terminal into 4
@@ -78,7 +78,7 @@ It is a prediction, not a guarantee. It cannot know whether a file exists, wheth
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `HEY_SHELL_MODEL` | `haiku` | model passed to `claude --model` |
-| `HEY_SHELL_CHECK` | off | `1` predicts failures after `-e` and on the key binding (see above) |
+| `HEY_SHELL_CHECK` | on | `0` turns off the failure prediction after `-e` and on the key binding (see above) |
 | `HEY_SHELL_CLAUDE` | `claude` | the CLI to call; set it for a custom path (the tests use it to inject a fake) |
 | `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
 

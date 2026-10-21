@@ -8,7 +8,7 @@
 #   hey-shell [-h]                           -> logo and usage (long form: --help; exit 2 when no request was given)
 # Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL),
 #      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use),
-#      HEY_SHELL_CHECK (default: off; 1 = also predict failure after --explain and on the key binding)
+#      HEY_SHELL_CHECK (default: on; 0 = do not predict failure after --explain and on the key binding)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -116,7 +116,7 @@ if [ "$HEY_SHELL_RISK_LEVEL" = low ]; then
 else
   printf '\nrisk: %s (%s)\n' "$HEY_SHELL_RISK_LEVEL" "$HEY_SHELL_RISK_REASON"
 fi
-if [ "${HEY_SHELL_CHECK:-0}" = 1 ]; then
+if [ "${HEY_SHELL_CHECK:-1}" != 0 ]; then
   hey_shell_check "$command_line"
   if [ "$HEY_SHELL_CHECK_LEVEL" = ok ]; then
     printf 'check: ok\n'

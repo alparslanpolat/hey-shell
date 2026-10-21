@@ -21,9 +21,9 @@ _hey_shell_risk_msg() {
   esac
 }
 
-# Opt-in (HEY_SHELL_CHECK=1): predict whether the command would fail. Never runs the command.
+# Predict whether the command would fail (turn off with HEY_SHELL_CHECK=0). Never runs the command.
 _hey_shell_check_msg() {
-  [[ ${HEY_SHELL_CHECK:-0} == 1 ]] || return 0
+  [[ ${HEY_SHELL_CHECK:-1} == 0 ]] && return 0
   local names="$(print -l -- ${(k)aliases} ${(k)functions})"
   local res=$(HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --check "$1")
   local level=${res%%$'\n'*} reason=${res#*$'\n'}
@@ -58,7 +58,7 @@ hey-shell() {
   case "${1:-}" in
     -e|--explain)
       local out names=''
-      [[ ${HEY_SHELL_CHECK:-0} == 1 ]] && names="$(print -l -- ${(k)aliases} ${(k)functions})"
+      [[ ${HEY_SHELL_CHECK:-1} == 0 ]] || names="$(print -l -- ${(k)aliases} ${(k)functions})"
       out=$(HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || return $?
       print -r -- "$out"
       print -rz -- "${out%%$'\n'*}" ;;

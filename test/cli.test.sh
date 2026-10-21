@@ -46,12 +46,12 @@ expect "-r short flag" "force or recursive delete" -r "rm -rf x"
 expect "-r joins unquoted words" "force or recursive delete" -r rm -rf x
 expect "-c joins unquoted words" "'nonexistent-zz' not found" -c nonexistent-zz --help
 
-# opt-in failure check after --explain
-FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' HEY_SHELL_CHECK=1 expect "explain check fails" "check: would likely fail: 'nonexistent-prog-xyz' not found" --explain do thing
-FAKE_OUT='ls -la\n\nLists files.' HEY_SHELL_CHECK=1 expect "explain check ok" "check: ok" --explain list files
+# failure check after --explain (on by default, HEY_SHELL_CHECK=0 turns it off)
+FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check fails" "check: would likely fail: 'nonexistent-prog-xyz' not found" --explain do thing
+FAKE_OUT='ls -la\n\nLists files.' expect "explain check ok" "check: ok" --explain list files
 total=$((total + 1))
-case $(FAKE_OUT='nonexistent-prog-xyz\n\nDoes a thing.' "$bin" --explain do thing 2>&1) in
-  *"check:"*) echo "FAIL the check must be off unless HEY_SHELL_CHECK=1"; fail=$((fail + 1)) ;;
+case $(FAKE_OUT='nonexistent-prog-xyz\n\nDoes a thing.' HEY_SHELL_CHECK=0 "$bin" --explain do thing 2>&1) in
+  *"check:"*) echo "FAIL HEY_SHELL_CHECK=0 must turn the check off"; fail=$((fail + 1)) ;;
 esac
 
 # prompt rules reach the model
