@@ -1,0 +1,59 @@
+ls -la | awk '{print $1}' | sort | uniq -c | sort -rn | head
+find . -name '*.log' -mtime +7 -exec rm {} \;
+find . -type f -print0 | xargs -0 -I{} echo {}
+while read -r line; do echo "$line"; done < /etc/hostname
+if [ -f /etc/hostname ]; then echo yes; else echo no; fi
+[[ -n $HOME ]] && echo set
+echo ${HOME:-/tmp} ${#HOME}
+cat <<< "hello"
+f() { echo hi; }; f
+ls >/dev/null 2>&1
+ls &>/dev/null
+sleep 0.1 &
+time ls
+command -v ls
+export FOO=1 && echo $FOO
+tar -czf /tmp/a.tgz /etc/hostname
+grep -rn "foo" . --include='*.js'
+for f in *.txt; do mv "$f" "${f%.txt}.md"; done
+echo "a;b"; echo 'c|d'
+ps aux | grep '[n]ode'
+printf '%s\n' a b c
+echo $RANDOM
+arr=(a b c); echo ${#arr[@]} ${arr[1]}
+until false; do break; done
+! false
+{ echo a; echo b; } | cat
+diff <(echo a) <(echo b)
+trap 'echo bye' EXIT
+exec ls
+echo $(date +%s) $(( $(date +%s) - 5 ))
+for i in {1..3}; do echo $i; done
+for i in $(seq 1 3); do echo "$i"; done
+case "$1" in start) echo s;; stop|restart) echo r;; *) echo u;; esac
+echo "$(basename "$(pwd)")"
+ls -l | while read -r a b c; do echo "$a"; done
+x=5; [ "$x" -gt 3 ] && echo big || echo small
+echo hi | tee /tmp/hs-test-out | wc -c
+sed -n '1,5p' /etc/hostname
+sed -E 's/([a-z]+)/<\1>/g' /etc/hostname
+awk -F: '$3 >= 1000 {print $1}' /etc/passwd
+cut -d: -f1 /etc/passwd | sort | head -3
+echo "tab	sep" | cut -f2
+test -d /tmp && echo dir
+echo a > /tmp/hs-test-a && cat /tmp/hs-test-a
+(( 1 + 2 > 2 )) && echo math
+let n=3+4; echo $n
+declare -A m; m[a]=1; echo ${m[a]}
+read -r -t 0.1 x < /dev/null; echo done
+echo "unicode: héllo"
+ls -- -weird 2>/dev/null; true
+nohup sleep 0.1 >/dev/null 2>&1 &
+env FOO=1 printenv FOO
+echo $'tab\there'
+echo "${PATH//:/ }"
+for i in $(seq 1 5); do printf '%*s' $((5-i)) ''; printf '*%.0s' $(seq 1 $((2*i-1))); echo; done
+for ((i=0;i<3;i++)); do echo $i; done
+echo $(( $(seq 1 3 | wc -l) + 1 ))
+x=$((1+2)) ls
+(cd /tmp && ls)

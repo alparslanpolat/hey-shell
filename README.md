@@ -77,7 +77,7 @@ What it looks at:
 - **Programs:** every program in a pipeline or `&&` chain must exist as an executable, builtin, keyword, or one of your own aliases and functions.
 - **Environment:** `git` needs a repository, `tmux` needs a running server, `docker` needs its socket. These use read-only probes (`git rev-parse`, `tmux list-sessions`, a socket test).
 
-It is a prediction, not a guarantee. It cannot know whether a file exists, whether you have permission, or what a program does with its arguments, and it skips commands behind `sudo -u ...` or other wrapper options. The only way to be sure a command works is to run it, which hey-shell will never do for you.
+It is a prediction, not a guarantee. It cannot know whether a file exists, whether you have permission, or what a program does with its arguments. It skips commands behind `sudo -u ...` or other wrapper options, does not look inside `$((...))`, array literals or `case` patterns, and leaves out anything it cannot tell for sure: a wrong "likely fail" on a working command is worse than a missed one. `test/valid-commands.txt` holds working one-liners that must never be flagged; add a line there whenever you meet a false alarm. The only way to be sure a command works is to run it, which hey-shell will never do for you. The only way to be sure a command works is to run it, which hey-shell will never do for you.
 
 ## Configuration
 

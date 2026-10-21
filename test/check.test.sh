@@ -38,6 +38,16 @@ check fail "'nonexistent-sudo'"      'sudo nonexistent-sudo'
 check fail "'nonexistent-subshell'"  'echo $(nonexistent-subshell)'
 check fail "'/no/such/bin'"          '/no/such/bin --x'
 
+# every line of test/valid-commands.txt is a working command and must not be flagged
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  check ok '' "$line"
+done < "$root/test/valid-commands.txt"
+check fail "'nonexistent-fn'"        'f() { nonexistent-fn; }; f'
+check fail "'nonexistent-if'"        'if true; then nonexistent-if; fi'
+check fail "'nonexistent-loop'"      'while false; do nonexistent-loop; done'
+check fail "'nonexistent-psub'"      'diff <(nonexistent-psub) <(echo b)'
+
 # the caller's aliases and functions count as existing
 total=$((total + 1))
 [ "$(HEY_SHELL_KNOWN_NAMES=$'hs\nlzd' "$bin" --check 'hs foo' | head -1)" = ok ] || { echo "FAIL known alias not accepted"; fail=$((fail + 1)); }
