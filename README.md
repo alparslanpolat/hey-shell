@@ -15,12 +15,12 @@ Works in bash and zsh on Linux, WSL2 and macOS. Uses the [Claude Code](https://c
 
 ```bash
 git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell
-~/hey-shell/install.sh          # asks for a key (default ctrl+g) and a short alias (default hs); detects bash/zsh, add --shell zsh to force
-~/hey-shell/install.sh --key alt+o --alias hs # or pass them directly (--no-alias for none); re-run to change either
+~/hey-shell/install.sh          # asks for a key (default ctrl+g) and short aliases; detects bash/zsh, add --shell zsh to force
+~/hey-shell/install.sh --key alt+o --aliases # or pass them directly (--no-alias for none); re-run to change either
 source ~/.zshrc                    # or ~/.bashrc, or open a new terminal
 ```
 
-The installer appends one marked block to your rc file. It sets your key, adds the repo's `bin/` to your `PATH` so `hey-shell` works as a command, optionally adds a short alias (such as `hs`), and loads the key binding. An alias you already defined yourself is left alone, and a name that would shadow an existing command asks first. Keys are `ctrl+<letter|digit>` or `alt+<letter|digit>`; terminal-reserved ones (`ctrl+c`, `ctrl+d`, `ctrl+z`, ...) are refused. On macOS, `alt+` keys need "Use Option as Meta key" enabled in your terminal. Remove everything with `./install.sh --uninstall`.
+The installer appends one marked block to your rc file. It sets your key, adds the repo's `bin/` to your `PATH` so `hey-shell` works as a command, optionally adds short aliases, and loads the key binding. The installer offers `hs` for `hey-shell`, `hse` for `hey-shell --explain`, `hsr` for `--risk` and `hsc` for `--check`: press Enter to take them all, `n` for none, or `c` to rename each (`--aliases`, `--no-alias`, `--alias`, `--alias-explain`, `--alias-risk` and `--alias-check` do the same without a prompt). An alias you already defined yourself is left alone, and a name that would shadow an existing command asks first. Keys are `ctrl+<letter|digit>` or `alt+<letter|digit>`; terminal-reserved ones (`ctrl+c`, `ctrl+d`, `ctrl+z`, ...) are refused. On macOS, `alt+` keys need "Use Option as Meta key" enabled in your terminal. Remove everything with `./install.sh --uninstall`.
 
 ### As a Claude Code plugin
 
@@ -77,7 +77,7 @@ What it looks at:
 - **Programs:** every program in a pipeline or `&&` chain must exist as an executable, builtin, keyword, or one of your own aliases and functions.
 - **Environment:** `git` needs a repository, `tmux` needs a running server, `docker` needs its socket. These use read-only probes (`git rev-parse`, `tmux list-sessions`, a socket test).
 
-It is a prediction, not a guarantee. It cannot know whether a file exists, whether you have permission, or what a program does with its arguments. It skips commands behind `sudo -u ...` or other wrapper options, does not look inside `$((...))`, array literals or `case` patterns, and leaves out anything it cannot tell for sure: a wrong "likely fail" on a working command is worse than a missed one. `test/valid-commands.txt` holds working one-liners that must never be flagged; add a line there whenever you meet a false alarm. The only way to be sure a command works is to run it, which hey-shell will never do for you. The only way to be sure a command works is to run it, which hey-shell will never do for you.
+It is a prediction, not a guarantee. It cannot know whether a file exists, whether you have permission, or what a program does with its arguments. It skips commands behind `sudo -u ...` or other wrapper options, does not look inside `$((...))`, array literals or `case` patterns, and leaves out anything it cannot tell for sure: a wrong "likely fail" on a working command is worse than a missed one. `test/valid-commands.txt` holds working one-liners that must never be flagged; add a line there whenever you meet a false alarm. The only way to be sure a command works is to run it, which hey-shell will never do for you.
 
 ## Configuration
 

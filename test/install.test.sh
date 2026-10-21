@@ -45,16 +45,34 @@ ok '[ "$(count "hey-shell")" = 0 ] && [ "$(count "^alias hs")" = 0 ] && [ "$(cou
 new_home; run >/dev/null; out=$(run)
 ok '[[ $out == *"already installed"* ]]'                       "plain re-run says already installed"
 
+new_home; run --aliases >/dev/null
+ok '[ "$(count "^alias ")" = 4 ] && [ "$(count "^alias hse=.hey-shell --explain.")" = 1 ] && [ "$(count "^alias hsr=.hey-shell --risk.")" = 1 ] && [ "$(count "^alias hsc=.hey-shell --check.")" = 1 ]' "--aliases writes hs, hse, hsr and hsc"
+run --key alt+o >/dev/null
+ok '[ "$(count "^alias ")" = 4 ] && [ "$(count "alt+o")" = 1 ]' "changing the key keeps all four aliases"
+run --alias-explain ex >/dev/null
+ok '[ "$(count "^alias ex=.hey-shell --explain.")" = 1 ] && [ "$(count "^alias hse=")" = 0 ] && [ "$(count "^alias hs=")" = 1 ]' "--alias-explain renames only that alias"
+run --no-alias >/dev/null
+ok '[ "$(count "^alias ")" = 0 ]' "--no-alias removes them all"
+
+new_home; printf "alias hse='mine'\n" > "$rc"
+out=$(run --aliases)
+ok '[[ $out == *"alias '"'"'hse'"'"' is already defined"* ]] && [ "$(count "^alias hse=")" = 1 ] && [ "$(count "^alias hsr=")" = 1 ]' "a hand-made hse is kept, the others are still added"
+out=$(run --alias-risk cat)
+ok '[[ $out == *"already exists"* ]] && [ "$(count "^alias cat=.hey-shell --risk.")" = 1 ]' "warns when an alias shadows a command"
+
 if command -v script >/dev/null; then
   new_home
-  printf 'alt+o\nhs\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh" /dev/null >/dev/null 2>&1
-  ok '[ "$(count "^alias hs=")" = 1 ] && [ "$(count "alt+o")" = 1 ]' "interactive: key and alias are asked"
+  printf 'alt+o\n\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh" /dev/null >/dev/null 2>&1
+  ok '[ "$(count "^alias ")" = 4 ] && [ "$(count "alt+o")" = 1 ]' "interactive: Enter accepts the key and all four aliases"
   new_home
   printf '\nn\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh" /dev/null >/dev/null 2>&1
-  ok '[ "$(count "^alias ")" = 0 ] && [ "$(count "ctrl+g")" = 1 ]' "interactive: n skips the alias, Enter keeps ctrl+g"
+  ok '[ "$(count "^alias ")" = 0 ] && [ "$(count "ctrl+g")" = 1 ]' "interactive: n skips every alias"
+  new_home; run --aliases >/dev/null
+  printf 'n\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh --key ctrl+g" /dev/null >/dev/null 2>&1
+  ok '[ "$(count "^alias ")" = 0 ]' "interactive: n on a re-install removes the existing aliases"
   new_home
-  printf '\n\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh" /dev/null >/dev/null 2>&1
-  ok '[ "$(count "^alias hs=")" = 1 ]'                          "interactive: Enter accepts the default alias hs"
+  printf '\nc\n\nx\nn\nmycheck\n' | HOME="$H" SHELL=/bin/zsh script -qec "$installer --shell zsh" /dev/null >/dev/null 2>&1
+  ok '[ "$(count "^alias hs=.hey-shell.")" = 1 ] && [ "$(count "^alias x=.hey-shell --explain.")" = 1 ] && [ "$(count "--risk")" = 0 ] && [ "$(count "^alias mycheck=.hey-shell --check.")" = 1 ]' "interactive: c customizes each name, n skips one"
 fi
 
 echo "$((total - fail))/$total passed"
