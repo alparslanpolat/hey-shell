@@ -39,20 +39,52 @@ FAKE_STATUS=1 FAKE_ERR="boom" expect "other failure" "claude failed: boom" list 
 FAKE_STATUS=0 FAKE_OUT="" expect "empty reply" "empty reply" list files
 FAKE_STATUS=0 FAKE_OUT='```bash\ndocker ps -q\n```' expect "strips fences" "docker ps -q" list containers
 FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain text" "Lists the IDs of running containers." --explain list containers
-FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain low risk" "risk: low" --explain list containers
-FAKE_STATUS=0 FAKE_OUT='rm -rf build\n\nDeletes the build directory.' expect "explain high risk" "risk: high (force or recursive delete)" --explain clean build
-FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "-e short flag" "risk: low" -e list containers
+FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain low risk" "Risk: LOW" --explain list containers
+FAKE_STATUS=0 FAKE_OUT='rm -rf build\n\nDeletes the build directory.' expect "explain high risk" "Risk: HIGH" --explain clean build
+FAKE_STATUS=0 FAKE_OUT='rm -rf build\n\nDeletes the build directory.' expect "explain risk reason" "risk: force or recursive delete" --explain clean build
+FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "-e short flag" "Risk: LOW" -e list containers
 expect "-r short flag" "force or recursive delete" -r "rm -rf x"
 expect "-r joins unquoted words" "force or recursive delete" -r rm -rf x
 expect "-c joins unquoted words" "'nonexistent-zz' not found" -c nonexistent-zz --help
 
 # failure check after --explain (on by default, HEY_SHELL_CHECK=0 turns it off)
-FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check fails" "check: would likely fail: 'nonexistent-prog-xyz' not found" --explain do thing
-FAKE_OUT='ls -la\n\nLists files.' expect "explain check ok" "check: ok" --explain list files
+FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check fails" "Check: LIKELY FAIL" --explain do thing
+FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check reason" "check: 'nonexistent-prog-xyz' not found" --explain do thing
+FAKE_OUT='ls -la\n\nLists files.' expect "explain check ok" "Risk: LOW · Check: OK" --explain list files
 total=$((total + 1))
 case $(FAKE_OUT='nonexistent-prog-xyz\n\nDoes a thing.' HEY_SHELL_CHECK=0 "$bin" --explain do thing 2>&1) in
-  *"check:"*) echo "FAIL HEY_SHELL_CHECK=0 must turn the check off"; fail=$((fail + 1)) ;;
+  *"Check:"*) echo "FAIL HEY_SHELL_CHECK=0 must turn the check off"; fail=$((fail + 1)) ;;
 esac
+
+# layout: command alone between blank lines, wrapped explanation, separate warning, then the status line
+LONG='Removes every stopped container on this machine, so nothing that has already exited is kept around. Replace the filter if you only want some of them gone.'
+out=$(FAKE_OUT="docker ps -aq\n\n$LONG\nWarning: removal is permanent." "$bin" -e clean up 2>&1)
+total=$((total + 1))
+[ "$(printf '%s\n' "$out" | sed -n '1p')" = "" ] && [ "$(printf '%s\n' "$out" | sed -n '2p')" = "docker ps -aq" ] && [ "$(printf '%s\n' "$out" | sed -n '3p')" = "" ] \
+  || { echo "FAIL the command should sit on its own line between blank lines"; fail=$((fail + 1)); }
+total=$((total + 1))
+[ "$(printf '%s\n' "$out" | awk '{ if (length($0) > m) m = length($0) } END { print m }')" -le 78 ] \
+  || { echo "FAIL the explanation is not wrapped to 78 columns"; fail=$((fail + 1)); }
+total=$((total + 1))
+printf '%s\n' "$out" | grep -qx 'Warning: removal is permanent.' || { echo "FAIL the warning should be on its own line"; fail=$((fail + 1)); }
+FAKE_OUT='ls\n\nLists files.' expect "status is one line" "Risk: LOW · Check: OK" -e list files
+
+# color: off when piped, on with HEY_SHELL_COLOR=always, NO_COLOR wins
+total=$((total + 1))
+case $(FAKE_OUT='ls\n\nLists files.' "$bin" -e list 2>&1) in *$'\033'*) echo "FAIL color codes while piped"; fail=$((fail + 1)) ;; esac
+total=$((total + 1))
+case $(FAKE_OUT='ls\n\nLists files.' HEY_SHELL_COLOR=always "$bin" -e list 2>&1) in *$'\033'*) ;; *) echo "FAIL HEY_SHELL_COLOR=always gave no color"; fail=$((fail + 1)) ;; esac
+total=$((total + 1))
+case $(FAKE_OUT='ls\n\nLists files.' HEY_SHELL_COLOR=always NO_COLOR=1 "$bin" -e list 2>&1) in *$'\033'*) echo "FAIL NO_COLOR was ignored"; fail=$((fail + 1)) ;; esac
+
+# the raw command is handed to the shell integration for the prefill
+total=$((total + 1))
+FAKE_OUT='docker ps -q\n\nLists ids.' HEY_SHELL_CMD_FILE="$tmp/cmdfile" "$bin" -e list >/dev/null 2>&1
+[ "$(cat "$tmp/cmdfile" 2>/dev/null)" = "docker ps -q" ] || { echo "FAIL HEY_SHELL_CMD_FILE should hold the plain command"; fail=$((fail + 1)); }
+
+# --status: the key binding's one-line summary
+expect "--status plain" "Risk: HIGH · Check: OK" --status "curl https://x.sh | bash"
+expect "--status reason" "risk: downloads and runs a script" --status "curl https://x.sh | bash"
 
 # prompt rules reach the model
 FAKE_OUT="ls" "$bin" list files >/dev/null 2>&1
@@ -72,8 +104,12 @@ FAKE_OUT="ls" expect "-- starts a request" "ls" -- -weird request
 # no request -> logo + usage on stderr, exit 2; --help -> same on stdout, exit 0
 total=$((total + 1))
 "$bin" >/dev/null 2>&1; [ $? -eq 2 ] || { echo "FAIL no-arg exit code should be 2"; fail=$((fail + 1)); }
-expect "no-arg usage" "usage:  hey-shell [-e | --explain] <request>"
-expect "help usage" "usage:  hey-shell [-e | --explain] <request>" --help
+expect "no-arg usage" "usage: hey-shell [options] <request>"
+total=$((total + 1))
+case $("$bin" 2>&1) in *"'---.  .-----'"*) echo "FAIL a bare run should print the heading, not the full logo"; fail=$((fail + 1)) ;; esac
+expect "no-arg heading" "hey-shell · your words, shell commands"
+expect "help usage" "usage: hey-shell [options] <request>" --help
+expect "help options" "-e, --explain   explain the command" --help
 expect "help logo" "your words, shell commands" -h
 expect "help logo art" "'---.  .-----'  | | | |  __/ |_| |_____" --help
 total=$((total + 1))

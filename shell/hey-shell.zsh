@@ -12,26 +12,12 @@ _hey_shell_keyseq() {
   esac
 }
 
-_hey_shell_risk_msg() {
-  local risk=$("$_hey_shell_bin" --risk "$1")
-  local level=${risk%%$'\n'*} reason=${risk#*$'\n'}
-  case $level in
-    high)   print -r -- "hey-shell: HIGH RISK: $reason. Read it carefully before pressing Enter." ;;
-    medium) print -r -- "hey-shell: caution: $reason." ;;
-  esac
-}
-
-# Predict whether the command would fail (turn off with HEY_SHELL_CHECK=0). Never runs the command.
-_hey_shell_check_msg() {
-  [[ ${HEY_SHELL_CHECK:-1} == 0 ]] && return 0
-  local names="$(print -l -- ${(k)aliases} ${(k)functions})"
-  local res=$(HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --check "$1")
-  local level=${res%%$'\n'*} reason=${res#*$'\n'}
-  if [[ $level == ok ]]; then
-    print -r -- "hey-shell: check ok"
-  else
-    print -r -- "hey-shell: check: would likely fail: $reason"
-  fi
+# "Risk: ... · Check: ..." under the command. The check is on by default (turn off with HEY_SHELL_CHECK=0)
+# and never runs the command.
+_hey_shell_status_msg() {
+  local names=''
+  [[ ${HEY_SHELL_CHECK:-1} == 0 ]] || names="$(print -l -- ${(k)aliases} ${(k)functions})"
+  HEY_SHELL_COLOR=never HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1"
 }
 
 _hey_shell_fill() {
@@ -48,20 +34,21 @@ _hey_shell_fill() {
   [[ -z $cmd ]] && return
   BUFFER=$cmd
   CURSOR=${#BUFFER}
-  local note="$(_hey_shell_risk_msg "$cmd")" chk="$(_hey_shell_check_msg "$cmd")"
-  [[ -n $chk ]] && note="${note:+$note$'\n'}$chk"
-  [[ -n $note ]] && zle -M "$note"
+  zle -M "$(_hey_shell_status_msg "$cmd")"
 }
 
 # `hey-shell -e ...` explains, then leaves the command on the next prompt, ready to edit or run.
 hey-shell() {
   case "${1:-}" in
     -e|--explain)
-      local out names=''
+      local out names='' color=never cmdfile
+      [[ -t 1 ]] && color=always
       [[ ${HEY_SHELL_CHECK:-1} == 0 ]] || names="$(print -l -- ${(k)aliases} ${(k)functions})"
-      out=$(HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || return $?
+      cmdfile=$(mktemp)
+      out=$(HEY_SHELL_COLOR=$color HEY_SHELL_CMD_FILE=$cmdfile HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || { local st=$?; rm -f "$cmdfile"; return $st }
       print -r -- "$out"
-      print -rz -- "${out%%$'\n'*}" ;;
+      print -rz -- "$(<$cmdfile)"
+      rm -f "$cmdfile" ;;
     *) command hey-shell "$@" ;;
   esac
 }

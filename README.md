@@ -34,16 +34,21 @@ A plugin cannot bind keys in your shell by itself, so `/hey-shell:install` runs 
 
 ## Explain a command first
 
-`hey-shell -e "<request>"` (or `--explain`) prints the command, a short plain-language explanation, and its risk rating. The command is then left on your next prompt line, ready to edit and run with Enter (it is never run for you). The installer puts `hey-shell` on your `PATH` and loads this behavior; if you installed an older version, re-run `./install.sh --key <your key>` to add it.
+`hey-shell -e "<request>"` (or `--explain`) prints the command on its own lines, a short explanation wrapped to 78 columns, an optional separate warning, and one status line with the risk and the failure check. The command is then left on your next prompt line, ready to edit and run with Enter (it is never run for you). The installer puts `hey-shell` on your `PATH` and loads this behavior; if you installed an older version, re-run `./install.sh --key <your key>` to add it.
 
 ```
 $ hey-shell -e "delete all stopped docker containers"
+
 docker ps -aq -f status=exited | xargs -r docker rm
 
-Lists all exited containers and removes them. Removal is permanent, but images and named volumes are kept.
+Removes every container that has exited. Replace the filter to remove only some.
+Warning: removal is permanent and also deletes the containers' writable data.
 
-risk: medium (stops or removes containers)
+Risk: MEDIUM · Check: OK
+  risk: stops or removes containers
 ```
+
+Colors follow purpose: cyan for the command, amber for risk, red for danger, green only for a passed check, gray for labels and hints. They appear on a terminal only; `NO_COLOR=1` turns them off.
 
 Placeholders such as `<branch-name>` are left in the prefilled line for you to replace. In zsh the prefill uses `print -z`. In bash it relies on the terminal answering a status query (`ESC[5n`), which most terminals do; if yours doesn't, you just get the printed output without the prefill.
 
@@ -57,12 +62,13 @@ If something goes wrong you get one actionable line instead of a stack trace: Cl
 
 ```
 $ hey-shell -e how to split terminal into 4
+
 tmux split-window -h \; split-window -v \; select-pane -t 0 \; split-window -v
 
-This splits the current tmux window into a 2x2 grid of four panes.
+Splits the current tmux window into a 2x2 grid of four panes.
 
-risk: low
-check: would likely fail: no tmux server is running; start tmux first
+Risk: LOW · Check: LIKELY FAIL
+  check: no tmux server is running; start tmux first
 ```
 
 What it looks at:
@@ -80,6 +86,7 @@ It is a prediction, not a guarantee. It cannot know whether a file exists, wheth
 | `HEY_SHELL_MODEL` | `haiku` | model passed to `claude --model` |
 | `HEY_SHELL_CHECK` | on | `0` turns off the failure prediction after `-e` and on the key binding (see above) |
 | `HEY_SHELL_CLAUDE` | `claude` | the CLI to call; set it for a custom path (the tests use it to inject a fake) |
+| `HEY_SHELL_COLOR` | `auto` | `always` or `never` overrides the terminal detection; `NO_COLOR` always wins |
 | `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
 
 Set `HEY_SHELL_MODEL` before the `source` line in your rc file; `HEY_SHELL_KEY` is written there by the installer.

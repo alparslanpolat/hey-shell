@@ -21,14 +21,20 @@ hey_shell_banner() {
   printf '\n  your words, shell commands\n\n'
 }
 
-hey_shell_usage() {
-  cat <<USAGE
-usage:  hey-shell [-e | --explain] <request>
-        hey-shell [-r | --risk] "<command>"
-        hey-shell [-c | --check] "<command>"
-        hey-shell [-h | --help]
+# One-line heading for a bare `hey-shell`; the full logo is kept for --help.
+hey_shell_heading() {
+  local lime='' off=''
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then lime=$'\033[38;5;155m'; off=$'\033[0m'; fi
+  printf '\n%shey-shell%s %s· your words, shell commands%s\n\n' "$lime" "$off" "$C_MUTED" "$C_OFF"
+}
 
-At your prompt, type a request and press ${HEY_SHELL_KEY:-ctrl+g}.
-Nothing is ever run for you.
-USAGE
+# Needs hey_shell_colors to have run (hints are gray).
+hey_shell_usage() {
+  printf 'usage: hey-shell [options] <request>\n\n'
+  printf '  -e, --explain   explain the command, then leave it on your next prompt\n'
+  printf '  -r, --risk      rate a command: low, medium or high\n'
+  printf '  -c, --check     predict whether a command would fail\n'
+  printf '  -h, --help      show this help\n\n'
+  printf '%s  %-15s type a request at your prompt, then press it%s\n' "$C_MUTED" "${HEY_SHELL_KEY:-ctrl+g}" "$C_OFF"
+  printf '%s  %-15s generated commands are never run for you%s\n' "$C_MUTED" "nothing runs" "$C_OFF"
 }

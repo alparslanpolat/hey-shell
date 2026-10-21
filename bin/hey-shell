@@ -8,7 +8,8 @@
 #   hey-shell [-h]                           -> logo and usage (long form: --help; exit 2 when no request was given)
 # Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL),
 #      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use),
-#      HEY_SHELL_CHECK (default: on; 0 = do not predict failure after --explain and on the key binding)
+#      HEY_SHELL_CHECK (default: on; 0 = do not predict failure after --explain and on the key binding),
+#      HEY_SHELL_COLOR (auto|always|never; NO_COLOR also turns color off)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -16,6 +17,8 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$root/lib/risk.sh"
 # shellcheck source=../lib/check.sh
 source "$root/lib/check.sh"
+# shellcheck source=../lib/render.sh
+source "$root/lib/render.sh"
 # shellcheck source=../lib/banner.sh
 source "$root/lib/banner.sh"
 
@@ -55,8 +58,16 @@ $err"
 
 case "${1:-}" in
   --help|-h)
+    hey_shell_colors
     hey_shell_banner
     hey_shell_usage
+    exit 0 ;;
+  --status) # used by the key binding: "Risk: ... · Check: ..." for one command
+    shift
+    hey_shell_colors
+    hey_shell_risk "$*"
+    [ "${HEY_SHELL_CHECK:-1}" = 0 ] || hey_shell_check "$*"
+    hey_shell_status
     exit 0 ;;
   --risk|-r)
     shift
@@ -85,7 +96,7 @@ case "${1:-}" in
 esac
 
 request="$*"
-[ -n "$request" ] || { hey_shell_banner >&2; hey_shell_usage >&2; exit 2; }
+[ -n "$request" ] || { { hey_shell_colors; hey_shell_heading; hey_shell_usage; } >&2; exit 2; }
 
 case "$(uname -s)" in
   Darwin) os="macOS (BSD userland, not GNU: avoid GNU-only flags)" ;;
@@ -103,24 +114,20 @@ if [ "$explain" = 0 ]; then
   exit 0
 fi
 
-ask_claude "Reply in this exact format: line 1 is exactly one $shell_name command (no markdown, no backticks); line 2 is blank; then a plain-language explanation of at most three short sentences covering what the command does and any risk. $context $rules Task: $request"
+ask_claude "Reply in this exact format: line 1 is exactly one $shell_name command (no markdown, no backticks); line 2 is blank; then a plain-language explanation of at most two short sentences saying what the command does and what to replace; then, only if there is a real risk or precondition, one final line that starts with 'Warning: ' followed by one short sentence. $context $rules Task: $request"
 cleaned="$(printf '%s\n' "$out" | sed -e '/^```/d' -e 's/[[:space:]]*$//' | sed '/./,$!d')"
 command_line="$(printf '%s\n' "$cleaned" | head -1 | sed 's/^[[:space:]]*//')"
-explanation="$(printf '%s\n' "$cleaned" | sed '1d' | sed '/./,$!d')"
-hey_shell_risk "$command_line"
+explanation='' warning=''
+while IFS= read -r line; do
+  case $line in
+    '') ;;
+    Warning:*) warning="$(printf '%s %s' "$warning" "${line#Warning:}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')" ;;
+    *) explanation="${explanation:+$explanation }$line" ;;
+  esac
+done <<< "$(printf '%s\n' "$cleaned" | sed '1d')"
 
-printf '%s\n' "$command_line"
-[ -z "$explanation" ] || printf '\n%s\n' "$explanation"
-if [ "$HEY_SHELL_RISK_LEVEL" = low ]; then
-  printf '\nrisk: low\n'
-else
-  printf '\nrisk: %s (%s)\n' "$HEY_SHELL_RISK_LEVEL" "$HEY_SHELL_RISK_REASON"
-fi
-if [ "${HEY_SHELL_CHECK:-1}" != 0 ]; then
-  hey_shell_check "$command_line"
-  if [ "$HEY_SHELL_CHECK_LEVEL" = ok ]; then
-    printf 'check: ok\n'
-  else
-    printf 'check: would likely fail: %s\n' "$HEY_SHELL_CHECK_REASON"
-  fi
-fi
+hey_shell_risk "$command_line"
+[ "${HEY_SHELL_CHECK:-1}" = 0 ] || hey_shell_check "$command_line"
+[ -z "${HEY_SHELL_CMD_FILE:-}" ] || printf '%s' "$command_line" > "$HEY_SHELL_CMD_FILE" # for the shell integration's prefill
+hey_shell_colors
+hey_shell_render_explain "$command_line" "$explanation" "$warning"

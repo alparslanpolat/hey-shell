@@ -12,30 +12,12 @@ _hey_shell_keyseq() {
   esac
 }
 
-_hey_shell_warn() {
-  local risk level reason
-  risk=$("$_hey_shell_bin" --risk "$1")
-  level=${risk%%$'\n'*}
-  reason=${risk#*$'\n'}
-  case $level in
-    high)   printf '\n\033[1;31m[hey-shell] HIGH RISK: %s. Read it carefully before pressing Enter.\033[0m\n' "$reason" ;;
-    medium) printf '\n\033[33m[hey-shell] Caution: %s.\033[0m\n' "$reason" ;;
-  esac
-}
-
-# Predict whether the command would fail (turn off with HEY_SHELL_CHECK=0). Never runs the command.
-_hey_shell_check_note() {
-  [ "${HEY_SHELL_CHECK:-1}" = 0 ] && return 0
-  local res level reason names
-  names=$(compgen -A alias -A function)
-  res=$(HEY_SHELL_TARGET=bash HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --check "$1")
-  level=${res%%$'\n'*}
-  reason=${res#*$'\n'}
-  if [ "$level" = ok ]; then
-    printf '\033[2m[hey-shell] check: ok\033[0m\n'
-  else
-    printf '\033[1;31m[hey-shell] check: would likely fail: %s\033[0m\n' "$reason"
-  fi
+# "Risk: ... · Check: ..." under the command. The check is on by default (turn off with HEY_SHELL_CHECK=0)
+# and never runs the command.
+_hey_shell_status() {
+  local names=''
+  [ "${HEY_SHELL_CHECK:-1}" = 0 ] || names=$(compgen -A alias -A function)
+  printf '\n%s\n' "$(HEY_SHELL_COLOR=always HEY_SHELL_TARGET=bash HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1")"
 }
 
 _hey_shell_fill() {
@@ -52,8 +34,7 @@ _hey_shell_fill() {
   [ -z "$cmd" ] && return
   READLINE_LINE=$cmd
   READLINE_POINT=${#cmd}
-  _hey_shell_warn "$cmd"
-  _hey_shell_check_note "$cmd"
+  _hey_shell_status "$cmd"
 }
 
 # Put a single-line command on the next prompt. Readline has no `print -z`, so bind the reply the
@@ -72,11 +53,14 @@ _hey_shell_prefill() {
 hey-shell() {
   case "${1:-}" in
     -e|--explain)
-      local out names=''
+      local out names='' color=never cmdfile
+      [ -t 1 ] && color=always
       [ "${HEY_SHELL_CHECK:-1}" = 0 ] || names=$(compgen -A alias -A function)
-      out=$(HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || return $?
+      cmdfile=$(mktemp)
+      out=$(HEY_SHELL_COLOR=$color HEY_SHELL_CMD_FILE=$cmdfile HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || { local st=$?; rm -f "$cmdfile"; return $st; }
       printf '%s\n' "$out"
-      _hey_shell_prefill "${out%%$'\n'*}" ;;
+      _hey_shell_prefill "$(cat "$cmdfile")"
+      rm -f "$cmdfile" ;;
     *) command hey-shell "$@" ;;
   esac
 }
