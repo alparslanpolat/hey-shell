@@ -65,12 +65,15 @@ rm -rf ~/hey-shell
 
 ## Explain a command first
 
-`hse "<request>"` (`hey-shell -e`) prints the command on its own lines, a short explanation wrapped to 78 columns, an optional separate warning, and one status line with the risk and the failure check. The command is then left on your next prompt line, ready to edit and run with Enter (it is never run for you).
+`hse "<request>"` (`hey-shell -e`) prints the command in a labeled box, a short explanation wrapped to 78 columns, an optional separate warning, and one status line with the risk and the failure check. The command is then left on your next prompt line, ready to edit and run with Enter (it is never run for you).
 
 ```
 $ hse delete all stopped docker containers
 
-docker ps -aq -f status=exited | xargs -r docker rm
+SUGGESTED COMMAND · REVIEW BEFORE RUNNING
+╭────────────────────────────────────────────────────────────────────────────╮
+│ $ docker ps -aq -f status=exited | xargs -r docker rm                      │
+╰────────────────────────────────────────────────────────────────────────────╯
 
 Removes every container that has exited. Replace the filter to remove only some.
 Warning: removal is permanent and also deletes the containers' writable data.
@@ -79,7 +82,7 @@ Risk: MEDIUM · Check: OK
   risk: stops or removes containers
 ```
 
-Colors follow purpose: cyan for the command, amber for risk, red for danger, green only for a passed check, gray for labels and hints. They appear on a terminal only; `NO_COLOR=1` turns them off.
+Colors follow purpose: lime for the label and `$`, white for the command, amber for risk, red for danger, green only for a passed check, gray for labels and hints. They appear on a terminal only; `NO_COLOR=1` turns them off.
 
 Placeholders such as `<branch-name>` are left in the prefilled line for you to replace. In zsh the prefill uses `print -z`. In bash it relies on the terminal answering a status query (`ESC[5n`), which most terminals do; if yours doesn't, you just get the printed output without the prefill.
 
@@ -94,7 +97,11 @@ If something goes wrong you get one actionable line instead of a stack trace: Cl
 ```
 $ hse how to split terminal into 4
 
-tmux split-window -h \; split-window -v \; select-pane -t 0 \; split-window -v
+SUGGESTED COMMAND · REVIEW BEFORE RUNNING
+╭────────────────────────────────────────────────────────────────────────────╮
+│ $ tmux split-window -h \; split-window -v \; select-pane -t 0 \;           │
+│   split-window -v                                                          │
+╰────────────────────────────────────────────────────────────────────────────╯
 
 Splits the current tmux window into a 2x2 grid of four panes.
 

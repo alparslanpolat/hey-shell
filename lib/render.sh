@@ -4,11 +4,11 @@
 #   hey_shell_colors          sets C_CMD C_MUTED C_AMBER C_RED C_GREEN C_BRAND C_WORD C_OFF (empty when color is off)
 #   hey_shell_status          prints "Risk: MEDIUM · Check: OK" plus the reasons; run hey_shell_risk (and
 #                             hey_shell_check unless HEY_SHELL_CHECK=0) first
-#   hey_shell_render_explain  prints the command on its own lines, the wrapped explanation, a separate warning
+#   hey_shell_render_explain  prints the command in a labeled box, the wrapped explanation, a separate warning
 # Color is on when stdout is a terminal, or when HEY_SHELL_COLOR=always (the shell integration sets it because
 # it captures our output); HEY_SHELL_COLOR=never and NO_COLOR turn it off.
-# Palette: cyan = the command, amber = risk, red = danger, green = a passed check, gray = labels and hints.
-# Lime stays reserved for the logo.
+# Palette: warm white = the command, amber = risk, red = danger, green = a passed check, gray = labels, hints
+# and the box, lime = the logo and the suggested-command label and prompt.
 
 hey_shell_colors() {
   C_CMD='' C_MUTED='' C_AMBER='' C_RED='' C_GREEN='' C_BRAND='' C_WORD='' C_OFF=''
@@ -18,7 +18,6 @@ hey_shell_colors() {
     always) ;;
     *) [ -t 1 ] || return 0 ;;
   esac
-  C_CMD=$'\033[1;38;5;81m'
   C_MUTED=$'\033[38;5;245m'
   C_AMBER=$'\033[38;5;214m'
   C_RED=$'\033[38;5;203m'
@@ -27,6 +26,7 @@ hey_shell_colors() {
     truecolor|24bit) C_BRAND=$'\033[38;2;198;245;107m'; C_WORD=$'\033[38;2;241;242;234m' ;;
     *)               C_BRAND=$'\033[38;5;155m';         C_WORD=$'\033[38;5;255m' ;;
   esac
+  C_CMD=$'\033[1m'$C_WORD
   C_OFF=$'\033[0m'
 }
 
@@ -46,9 +46,29 @@ hey_shell_status() {
   fi
 }
 
+# hey_shell_render_command <command>: the label, then the command after a "$ " in a rounded box. The box is
+# 78 columns wide, or the terminal width ($COLUMNS) when that is narrower; long commands wrap inside it.
+hey_shell_render_command() {
+  local width=78 inner line bar='' pre='$ ' i=2 h
+  case ${COLUMNS:-} in ''|*[!0-9]*) ;; *) [ "$COLUMNS" -ge 78 ] || width=$COLUMNS ;; esac
+  [ "$width" -ge 24 ] || width=24
+  inner=$((width - 6))
+  h=$(printf '\342\224\200') # "─" as bytes: bash 3.2 mangles multibyte literals in some locales
+  while [ "$i" -lt "$width" ]; do bar="$bar$h"; i=$((i + 1)); done
+  printf '%sSUGGESTED COMMAND%s %s·%s %sREVIEW BEFORE RUNNING%s\n' "$C_BRAND" "$C_OFF" "$C_MUTED" "$C_OFF" "$C_BRAND" "$C_OFF"
+  printf '%s╭%s╮%s\n' "$C_MUTED" "$bar" "$C_OFF"
+  while IFS= read -r line; do
+    printf '%s│%s %s%s%s%s%*s %s│%s\n' "$C_MUTED" "$C_OFF" "$C_BRAND" "$pre" "$C_CMD" "$line$C_OFF" $((inner - ${#line})) '' "$C_MUTED" "$C_OFF"
+    pre='  '
+  done <<< "$(printf '%s\n' "$1" | fold -s -w "$inner")"
+  printf '%s╰%s╯%s\n' "$C_MUTED" "$bar" "$C_OFF"
+}
+
 # hey_shell_render_explain <command> <explanation> <warning>
 hey_shell_render_explain() {
-  printf '\n%s%s%s\n\n' "$C_CMD" "$1" "$C_OFF"
+  printf '\n'
+  hey_shell_render_command "$1"
+  printf '\n'
   [ -z "$2" ] || printf '%s\n' "$2" | fold -s -w 78 | sed 's/[[:space:]]*$//'
   [ -z "$3" ] || printf '%sWarning: %s%s\n' "$C_AMBER" "$(printf '%s' "$3" | fold -s -w 69 | sed 's/[[:space:]]*$//')" "$C_OFF"
   printf '\n'

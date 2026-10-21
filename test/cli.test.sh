@@ -62,14 +62,15 @@ case $(FAKE_OUT='nonexistent-prog-xyz\n\nDoes a thing.' HEY_SHELL_CHECK=0 "$bin"
   *"Check:"*) echo "FAIL HEY_SHELL_CHECK=0 must turn the check off"; fail=$((fail + 1)) ;;
 esac
 
-# layout: command alone between blank lines, wrapped explanation, separate warning, then the status line
+# layout: label and boxed command after a blank line, wrapped explanation, separate warning, then the status line
 LONG='Removes every stopped container on this machine, so nothing that has already exited is kept around. Replace the filter if you only want some of them gone.'
 out=$(FAKE_OUT="docker ps -aq\n\n$LONG\nWarning: removal is permanent." "$bin" -e clean up 2>&1)
 total=$((total + 1))
-[ "$(printf '%s\n' "$out" | sed -n '1p')" = "" ] && [ "$(printf '%s\n' "$out" | sed -n '2p')" = "docker ps -aq" ] && [ "$(printf '%s\n' "$out" | sed -n '3p')" = "" ] \
-  || { echo "FAIL the command should sit on its own line between blank lines"; fail=$((fail + 1)); }
+[ "$(printf '%s\n' "$out" | sed -n '1p')" = "" ] && [ "$(printf '%s\n' "$out" | sed -n '2p')" = "SUGGESTED COMMAND · REVIEW BEFORE RUNNING" ] \
+  && printf '%s\n' "$out" | sed -n '4p' | grep -q '^│ \$ docker ps -aq  *│$' && [ "$(printf '%s\n' "$out" | sed -n '6p')" = "" ] \
+  || { echo "FAIL the command should sit in a labeled box after a blank line"; fail=$((fail + 1)); }
 total=$((total + 1))
-[ "$(printf '%s\n' "$out" | awk '{ if (length($0) > m) m = length($0) } END { print m }')" -le 78 ] \
+[ "$(printf '%s\n' "$out" | grep -v '^[│╭╰]' | awk '{ if (length($0) > m) m = length($0) } END { print m }')" -le 78 ] \
   || { echo "FAIL the explanation is not wrapped to 78 columns"; fail=$((fail + 1)); }
 total=$((total + 1))
 printf '%s\n' "$out" | grep -qx 'Warning: removal is permanent.' || { echo "FAIL the warning should be on its own line"; fail=$((fail + 1)); }
