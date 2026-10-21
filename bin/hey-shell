@@ -6,11 +6,13 @@
 #   hey-shell -c "<command>"                 -> predicts whether the command would fail, without running it (long form: --check)
 #   hey-shell [-h]                           -> logo and usage (long form: --help; exit 2 when no request was given)
 #   hey-shell -V                             -> the version, read from .claude-plugin/plugin.json (long form: --version)
+#   hey-shell -U                             -> updates this checkout to the latest version (long form: --update)
 # Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL),
 #      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use),
 #      HEY_SHELL_CHECK (default: on; 0 = do not predict failure after --explain and on the key binding),
 #      HEY_SHELL_COLOR (auto|always|never; NO_COLOR also turns color off),
-#      HEY_SHELL_TIMEOUT (default: 30; seconds to wait for Claude)
+#      HEY_SHELL_TIMEOUT (default: 30; seconds to wait for Claude),
+#      HEY_SHELL_UPDATE_CHECK (default: on; 0 = no "Update available" line)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,11 +24,17 @@ source "$root/lib/check.sh"
 source "$root/lib/render.sh"
 # shellcheck source=../lib/banner.sh
 source "$root/lib/banner.sh"
+# shellcheck source=../lib/update.sh
+source "$root/lib/update.sh"
 
 claude_bin="${HEY_SHELL_CLAUDE:-claude}"
 out=""
 
 die() { echo "hey-shell: $1" >&2; exit 1; }
+
+# The update notice on stderr, so output that scripts and the key binding capture stays clean. Only on a
+# terminal: the key binding shows it through --status instead.
+notice() { [ -t 2 ] || return 0; hey_shell_colors; hey_shell_update_notice >&2; }
 
 # Turn a failed `claude -p` run into one actionable line.
 explain_failure() {
@@ -74,6 +82,7 @@ case "${1:-}" in
     hey_shell_colors
     hey_shell_banner
     hey_shell_usage
+    notice
     exit 0 ;;
   --status) # used by the key binding: the boxed command, then "Risk: ... · Check: ..."
     shift
@@ -82,22 +91,29 @@ case "${1:-}" in
     [ "${HEY_SHELL_CHECK:-1}" = 0 ] || hey_shell_check "$*"
     hey_shell_render_command "$*"
     hey_shell_status
+    hey_shell_update_notice
     exit 0 ;;
   --risk|-r)
     shift
     hey_shell_risk "$*"
     printf '%s\n' "$HEY_SHELL_RISK_LEVEL"
     [ "$HEY_SHELL_RISK_LEVEL" = low ] || printf '%s\n' "$HEY_SHELL_RISK_REASON"
+    notice
     exit 0 ;;
   --check|-c)
     shift
     hey_shell_check "$*"
     printf '%s\n' "$HEY_SHELL_CHECK_LEVEL"
     [ "$HEY_SHELL_CHECK_LEVEL" = ok ] || printf '%s\n' "$HEY_SHELL_CHECK_REASON"
+    notice
     exit 0 ;;
   --version|-V)
-    printf 'hey-shell %s\n' "$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$root/.claude-plugin/plugin.json")"
+    printf 'hey-shell %s\n' "$(hey_shell_version)"
+    notice
     exit 0 ;;
+  --update|-U)
+    hey_shell_update
+    exit $? ;;
 esac
 
 explain=0
@@ -124,6 +140,7 @@ rules="Always answer with the command that does the task: never reply with a --h
 if [ "$explain" = 0 ]; then
   ask_claude "Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. $context $rules Task: $request"
   printf '%s\n' "$out" | sed -e '/^```/d' -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d'
+  notice
   exit 0
 fi
 
@@ -144,3 +161,4 @@ hey_shell_risk "$command_line"
 [ -z "${HEY_SHELL_CMD_FILE:-}" ] || printf '%s' "$command_line" > "$HEY_SHELL_CMD_FILE" # for the shell integration's prefill
 hey_shell_colors
 hey_shell_render_explain "$command_line" "$explanation" "$warning"
+hey_shell_update_notice

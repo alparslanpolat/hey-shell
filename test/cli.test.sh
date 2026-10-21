@@ -18,7 +18,7 @@ printf '%s' "$last" > "$FAKE_PROMPT_FILE"
 exit "${FAKE_STATUS:-0}"
 FAKE
 chmod +x "$tmp/claude"
-export HEY_SHELL_CLAUDE="$tmp/claude" FAKE_PROMPT_FILE="$tmp/prompt"
+export HEY_SHELL_CLAUDE="$tmp/claude" FAKE_PROMPT_FILE="$tmp/prompt" HEY_SHELL_UPDATE_CHECK=0
 
 # expect <name> <substring> <args...>: runs hey-shell with the FAKE_* env already set, checks stdout+stderr
 expect() {
@@ -129,6 +129,42 @@ total=$((total + 1))
 "$bin" --help >/dev/null 2>&1; [ $? -eq 0 ] || { echo "FAIL --help exit code should be 0"; fail=$((fail + 1)); }
 total=$((total + 1))
 case $("$bin" --help) in *$'\033'*) echo "FAIL logo emits color codes when not on a terminal"; fail=$((fail + 1)) ;; esac
+
+# update notice after --explain: read from a cache that is refreshed in the background (file:// stands in for GitHub)
+export XDG_CACHE_HOME="$tmp/cache"
+mkdir -p "$tmp/cache/hey-shell"
+echo 99.0.0 > "$tmp/cache/hey-shell/latest-version"
+FAKE_OUT='ls\n\nLists files.' HEY_SHELL_UPDATE_CHECK=1 expect "update notice" "Update available: $("$bin" -V | cut -d' ' -f2) → 99.0.0" -e list files
+HEY_SHELL_UPDATE_CHECK=1 expect "update notice on the key binding" "Update available:" --status "ls"
+total=$((total + 1))
+case $(FAKE_OUT='ls' HEY_SHELL_UPDATE_CHECK=1 "$bin" list files 2>/dev/null) in
+  *"Update available"*) echo "FAIL the notice must stay out of a captured command"; fail=$((fail + 1)) ;;
+esac
+echo 0.0.1 > "$tmp/cache/hey-shell/latest-version"
+total=$((total + 1))
+case $(FAKE_OUT='ls\n\nLists files.' HEY_SHELL_UPDATE_CHECK=1 "$bin" -e list files 2>&1) in
+  *"Update available"*) echo "FAIL no update notice when the published version is older"; fail=$((fail + 1)) ;;
+esac
+rm -f "$tmp/cache/hey-shell/latest-version"
+printf '{ "version": "98.1.0" }\n' > "$tmp/remote.json"
+FAKE_OUT='ls\n\nLists files.' HEY_SHELL_UPDATE_CHECK=1 HEY_SHELL_UPDATE_URL="file://$tmp/remote.json" "$bin" -e list files >/dev/null 2>&1
+i=0; while [ "$i" -lt 20 ] && [ "$(cat "$tmp/cache/hey-shell/latest-version" 2>/dev/null)" != 98.1.0 ]; do sleep 0.1; i=$((i + 1)); done
+total=$((total + 1))
+[ "$(cat "$tmp/cache/hey-shell/latest-version" 2>/dev/null)" = 98.1.0 ] || { echo "FAIL the background refresh should cache the published version"; fail=$((fail + 1)); }
+
+# --update: fast-forwards a git checkout; "up to date" when nothing is new, an error outside a checkout
+git init -q "$tmp/origin" && cp -R "$(dirname "$bin")/.." "$tmp/origin.src" && rm -rf "$tmp/origin.src/.git" \
+  && cp -R "$tmp/origin.src/." "$tmp/origin" && git -C "$tmp/origin" add -A \
+  && git -C "$tmp/origin" -c user.name=t -c user.email=t@t commit -qm base && git clone -q "$tmp/origin" "$tmp/clone"
+got=$("$tmp/clone/bin/hey-shell" --update 2>&1); total=$((total + 1))
+case $got in *"is up to date"*) ;; *) echo "FAIL --update with nothing new: $got"; fail=$((fail + 1)) ;; esac
+sed -i.bak 's/"version": *"[^"]*"/"version": "9.9.9"/' "$tmp/origin/.claude-plugin/plugin.json" && rm "$tmp/origin/.claude-plugin/plugin.json.bak"
+git -C "$tmp/origin" -c user.name=t -c user.email=t@t commit -qam bump
+got=$("$tmp/clone/bin/hey-shell" -U 2>&1); total=$((total + 1))
+case $got in *"updated: "*" → 9.9.9"*) ;; *) echo "FAIL --update should pull the new version: $got"; fail=$((fail + 1)) ;; esac
+got=$("$tmp/origin.src/bin/hey-shell" --update 2>&1); total=$((total + 1))
+case $got in *"is not a git checkout"*) ;; *) echo "FAIL --update outside a checkout: $got"; fail=$((fail + 1)) ;; esac
+expect "help lists update" "-U, --update    update to the latest version" --help
 
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]

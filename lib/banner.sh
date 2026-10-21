@@ -22,7 +22,8 @@ hey_shell_usage() {
   printf '  -r, --risk      rate a command: low, medium or high\n'
   printf '  -c, --check     predict whether a command would fail\n'
   printf '  -h, --help      show this help\n'
-  printf '  -V, --version   show the version\n\n'
+  printf '  -V, --version   show the version\n'
+  printf '  -U, --update    update to the latest version\n\n'
   printf '%s  %-15s type a request at your prompt, then press it%s\n' "$C_MUTED" "${HEY_SHELL_KEY:-ctrl+g}" "$C_OFF"
   printf '%s  %-15s generated commands are never run for you%s\n' "$C_MUTED" "nothing runs" "$C_OFF"
 }

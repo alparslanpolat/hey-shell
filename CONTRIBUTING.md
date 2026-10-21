@@ -39,4 +39,4 @@ Plain bash that also runs on macOS's bash 3.2 (no associative arrays, no `${var,
 
 ## Releasing
 
-Bump `version` in `.claude-plugin/plugin.json`, add a section to `CHANGELOG.md`, and tag the commit `vX.Y.Z`.
+Bump `version` in `.claude-plugin/plugin.json`, add a section to `CHANGELOG.md`, and tag the commit `vX.Y.Z`. Users see an "Update available" line once the bumped `plugin.json` is on `main`.

@@ -56,10 +56,12 @@ A plugin cannot bind keys in your shell by itself, so `/hey-shell:install` runs 
 ## Update
 
 ```bash
-git -C ~/hey-shell pull
+hey-shell --update   # or -U; same as: git -C ~/hey-shell pull
 ```
 
 Then open a new terminal (or `source` your rc file) so the shell picks up the new version. To change the key or aliases later, re-run the installer with the flags above.
+
+hey-shell tells you when a new version is out with an `Update available: 0.2.0 → 0.3.0` line: under the command on the key binding, and after `hse`, plain `hey-shell`, `-r`, `-c`, `--help` and `--version`. It looks up the published version at most once a day, in the background, so it never slows a command down; set `HEY_SHELL_UPDATE_CHECK=0` to turn it off.
 
 ## Uninstall
 
@@ -128,6 +130,7 @@ It is a prediction, not a guarantee. It cannot know whether a file exists, wheth
 | --- | --- | --- |
 | `HEY_SHELL_MODEL` | `haiku` | model passed to `claude --model` |
 | `HEY_SHELL_TIMEOUT` | `30` | seconds to wait for Claude before giving up |
+| `HEY_SHELL_UPDATE_CHECK` | on | `0` = no "Update available" line |
 | `HEY_SHELL_CHECK` | on | `0` turns off the failure prediction after `hse` and on the key binding |
 | `HEY_SHELL_COLOR` | `auto` | `always` or `never` overrides the terminal detection; `NO_COLOR` always wins |
 | `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
