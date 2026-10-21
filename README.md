@@ -43,7 +43,15 @@ Set `HEY_SHELL_MODEL` before the `source` line in your rc file; `HEY_SHELL_KEY` 
 
 ## Safety
 
-Commands are only placed on the prompt. If one matches a destructive pattern (`sudo`, `rm -rf`, `dd`, `mkfs`, `docker system prune`, writes to block devices, ...) you get a warning. This is a heuristic, not a guarantee: always read the command before pressing Enter. Your request and current directory path are sent to the model.
+Commands are only placed on the prompt, never executed. Each generated command is also rated:
+
+| Level | Warning | Examples |
+| --- | --- | --- |
+| high | red banner with the reason | `curl … \| bash`, `rm -rf`, `find … -delete`, `git push --force`, `git reset --hard`, `docker volume rm`, `terraform destroy`, `dd`, `mkfs` |
+| medium | yellow caution | `sudo`, `rm`, `kill`, `docker stop`, `systemctl restart`, `chown -R`, writes to `/etc` |
+| low | none | everything else |
+
+This is pattern matching, not a guarantee: it can miss risky commands and flag harmless ones, so always read the command before pressing Enter. The rules live in `lib/risk.sh`; run `./test/risk.test.sh` after changing them, and `bin/hey-shell --risk "<command>"` to check one by hand. Your request and current directory path are sent to the model.
 
 ## License
 

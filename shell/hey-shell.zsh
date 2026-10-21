@@ -12,6 +12,15 @@ _hey_shell_keyseq() {
   esac
 }
 
+_hey_shell_warn() {
+  local risk=$("$_hey_shell_bin" --risk "$1")
+  local level=${risk%%$'\n'*} reason=${risk#*$'\n'}
+  case $level in
+    high)   zle -M "hey-shell: HIGH RISK: $reason. Read it carefully before pressing Enter." ;;
+    medium) zle -M "hey-shell: caution: $reason." ;;
+  esac
+}
+
 _hey_shell_fill() {
   local request=$BUFFER cmd
   [[ -z $request ]] && return
@@ -20,9 +29,7 @@ _hey_shell_fill() {
   [[ -z $cmd ]] && return
   BUFFER=$cmd
   CURSOR=${#BUFFER}
-  if "$_hey_shell_bin" --danger "$cmd"; then
-    zle -M "hey-shell: this command looks destructive, review before running"
-  fi
+  _hey_shell_warn "$cmd"
 }
 
 zle -N _hey_shell_fill

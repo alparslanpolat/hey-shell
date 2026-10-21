@@ -12,6 +12,17 @@ _hey_shell_keyseq() {
   esac
 }
 
+_hey_shell_warn() {
+  local risk level reason
+  risk=$("$_hey_shell_bin" --risk "$1")
+  level=${risk%%$'\n'*}
+  reason=${risk#*$'\n'}
+  case $level in
+    high)   printf '\n\033[1;31m[hey-shell] HIGH RISK: %s. Read it carefully before pressing Enter.\033[0m\n' "$reason" ;;
+    medium) printf '\n\033[33m[hey-shell] Caution: %s.\033[0m\n' "$reason" ;;
+  esac
+}
+
 _hey_shell_fill() {
   local request=$READLINE_LINE cmd
   [ -z "$request" ] && return
@@ -19,9 +30,7 @@ _hey_shell_fill() {
   [ -z "$cmd" ] && return
   READLINE_LINE=$cmd
   READLINE_POINT=${#cmd}
-  if "$_hey_shell_bin" --danger "$cmd"; then
-    printf '\n[hey-shell] this command looks destructive, review before running\n'
-  fi
+  _hey_shell_warn "$cmd"
 }
 
 [[ $- == *i* ]] && bind -x "\"$(_hey_shell_keyseq)\": _hey_shell_fill"
