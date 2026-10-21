@@ -43,6 +43,8 @@ FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' ex
 FAKE_STATUS=0 FAKE_OUT='rm -rf build\n\nDeletes the build directory.' expect "explain high risk" "risk: high (force or recursive delete)" --explain clean build
 FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "-e short flag" "risk: low" -e list containers
 expect "-r short flag" "force or recursive delete" -r "rm -rf x"
+expect "-r joins unquoted words" "force or recursive delete" -r rm -rf x
+expect "-c joins unquoted words" "'nonexistent-zz' not found" -c nonexistent-zz --help
 
 # opt-in failure check after --explain
 FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' HEY_SHELL_CHECK=1 expect "explain check fails" "check: would likely fail: 'nonexistent-prog-xyz' not found" --explain do thing
@@ -58,6 +60,14 @@ for want in "read-only" "sudo" "unless the task explicitly asks"; do
   total=$((total + 1))
   grep -q -- "$want" "$tmp/prompt" || { printf 'FAIL prompt is missing: %s\n' "$want"; fail=$((fail + 1)); }
 done
+
+# a mistyped flag must not become a request (and must not call the model)
+rm -f "$tmp/prompt"
+expect "unknown option" "unknown option '-x'" -x list files
+expect "dash typo" "unknown option '-'" - c curl
+total=$((total + 1))
+[ ! -e "$tmp/prompt" ] || { echo "FAIL a mistyped flag reached the model"; fail=$((fail + 1)); }
+FAKE_OUT="ls" expect "-- starts a request" "ls" -- -weird request
 
 # no request -> logo + usage on stderr, exit 2; --help -> same on stdout, exit 0
 total=$((total + 1))

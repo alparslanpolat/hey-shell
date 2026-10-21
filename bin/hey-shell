@@ -59,12 +59,14 @@ case "${1:-}" in
     hey_shell_usage
     exit 0 ;;
   --risk|-r)
-    hey_shell_risk "${2:-}"
+    shift
+    hey_shell_risk "$*"
     printf '%s\n' "$HEY_SHELL_RISK_LEVEL"
     [ "$HEY_SHELL_RISK_LEVEL" = low ] || printf '%s\n' "$HEY_SHELL_RISK_REASON"
     exit 0 ;;
   --check|-c)
-    hey_shell_check "${2:-}"
+    shift
+    hey_shell_check "$*"
     printf '%s\n' "$HEY_SHELL_CHECK_LEVEL"
     [ "$HEY_SHELL_CHECK_LEVEL" = ok ] || printf '%s\n' "$HEY_SHELL_CHECK_REASON"
     exit 0 ;;
@@ -77,6 +79,11 @@ esac
 explain=0
 case "${1:-}" in --explain|-e) explain=1; shift ;; esac
 
+case "${1:-}" in
+  --) shift ;;
+  -*) echo "hey-shell: unknown option '$1' (try --help; put -- before a request that starts with a dash)" >&2; exit 2 ;;
+esac
+
 request="$*"
 [ -n "$request" ] || { hey_shell_banner >&2; hey_shell_usage >&2; exit 2; }
 
@@ -88,7 +95,7 @@ esac
 shell_name="${HEY_SHELL_TARGET:-$(basename "${SHELL:-bash}")}"
 
 context="Environment: $os, $shell_name, current directory $PWD."
-rules="Prefer portable, read-only commands. Do not use sudo or destructive commands (rm, kill, force flags, drops, prune) unless the task explicitly asks for them."
+rules="Always answer with the command that does the task: never reply with a --help or man lookup unless the task asks how to use a tool, and if unsure which tool the user has, pick the most common one. Prefer portable, read-only commands. Do not use sudo or destructive commands (rm, kill, force flags, drops, prune) unless the task explicitly asks for them."
 
 if [ "$explain" = 0 ]; then
   ask_claude "Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. $context $rules Task: $request"
