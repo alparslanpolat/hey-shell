@@ -133,14 +133,14 @@ footer a:hover { color: var(--lime); }
         <div class="keys"><kbd>Ctrl</kbd><span>+</span><kbd>G</kbd><small>default · customizable</small></div>
         <div><span class="prompt">$</span>docker ps -q<span class="cursor"></span></div>
       </div>
-      <div class="status">Ready to review · Not executed</div>
+      <div class="status">Risk: LOW · Check: OK · Not executed</div>
     </div>
   </section>
 
   <section class="steps" id="how">
     <div class="step"><div class="num">01</div><h3>Ask naturally</h3><p>Describe what you need in plain language at your shell prompt.</p></div>
     <div class="step"><div class="num">02</div><h3>Use your shortcut</h3><p><kbd class="sm">Ctrl</kbd>+<kbd class="sm">G</kbd> by default. Choose your key during installation.</p></div>
-    <div class="step"><div class="num">03</div><h3>Review &amp; run</h3><p>Read or edit the command, then press Enter. Nothing runs automatically.</p></div>
+    <div class="step"><div class="num">03</div><h3>Review &amp; run</h3><p>The risk and a failure check show under the command. Read or edit it, then press Enter. Nothing runs automatically.</p></div>
   </section>
 
   <section class="cta">
@@ -150,11 +150,12 @@ footer a:hover { color: var(--lime); }
 
   <section class="install" id="install">
     <h2>Install</h2>
-    <p>Clone it, run the installer, and pick your key. Works with the Claude Code CLI you already have.</p>
+    <p>Clone it, run the installer, and pick your key and short aliases. Works with the Claude Code CLI you already have.</p>
     <div class="block">
       <button class="copy" type="button" data-copy>Copy</button>
       <div id="install-cmd"><span>$ </span>git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell<br><span>$ </span>~/hey-shell/install.sh<br><span>$ </span>source ~/.zshrc</div>
     </div>
+    <p class="safe">Then try <code>hse how to free up disk space</code> for the command with an explanation, or <code>hsc "&lt;command&gt;"</code> to check one before you run it.</p>
     <p class="safe">Generated commands are only placed on your prompt, never executed. Always read them before pressing Enter.</p>
   </section>
 </main>
