@@ -15,12 +15,12 @@ Works in bash and zsh on Linux, WSL2 and macOS. Uses the [Claude Code](https://c
 
 ```bash
 git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell
-~/hey-shell/install.sh          # asks which key to use (default ctrl+g); detects bash/zsh, add --shell zsh to force
-~/hey-shell/install.sh --key alt+o # or pass the key directly; re-run with a new --key to change it
+~/hey-shell/install.sh          # asks for a key (default ctrl+g) and a short alias (default hs); detects bash/zsh, add --shell zsh to force
+~/hey-shell/install.sh --key alt+o --alias hs # or pass them directly (--no-alias for none); re-run to change either
 source ~/.zshrc                    # or ~/.bashrc, or open a new terminal
 ```
 
-The installer appends one marked block to your rc file. It sets your key, adds the repo's `bin/` to your `PATH` so `hey-shell` works as a command, and loads the key binding. Keys are `ctrl+<letter|digit>` or `alt+<letter|digit>`; terminal-reserved ones (`ctrl+c`, `ctrl+d`, `ctrl+z`, ...) are refused. On macOS, `alt+` keys need "Use Option as Meta key" enabled in your terminal. Remove everything with `./install.sh --uninstall`.
+The installer appends one marked block to your rc file. It sets your key, adds the repo's `bin/` to your `PATH` so `hey-shell` works as a command, optionally adds a short alias (such as `hs`), and loads the key binding. An alias you already defined yourself is left alone, and a name that would shadow an existing command asks first. Keys are `ctrl+<letter|digit>` or `alt+<letter|digit>`; terminal-reserved ones (`ctrl+c`, `ctrl+d`, `ctrl+z`, ...) are refused. On macOS, `alt+` keys need "Use Option as Meta key" enabled in your terminal. Remove everything with `./install.sh --uninstall`.
 
 ### As a Claude Code plugin
 
@@ -94,7 +94,7 @@ Commands are only placed on the prompt, never executed. Each generated command i
 | medium | yellow caution | `sudo`, `rm`, `kill`, `docker stop`, `systemctl restart`, `chown -R`, writes to `/etc` |
 | low | none | everything else |
 
-This is pattern matching, not a guarantee: it can miss risky commands and flag harmless ones, so always read the command before pressing Enter. The rules live in `lib/risk.sh`; run `./test/risk.test.sh` (plus `./test/cli.test.sh` for the CLI and `./test/check.test.sh` for the failure predictor) after changing them, and `hey-shell --risk "<command>"` to check one by hand. Your request and current directory path are sent to the model.
+This is pattern matching, not a guarantee: it can miss risky commands and flag harmless ones, so always read the command before pressing Enter. The rules live in `lib/risk.sh`; run `./test/risk.test.sh` (plus `./test/cli.test.sh`, `./test/check.test.sh` and `./test/install.test.sh`) after changing them, and `hey-shell --risk "<command>"` to check one by hand. Your request and current directory path are sent to the model.
 
 ## License
 
