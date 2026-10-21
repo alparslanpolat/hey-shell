@@ -18,7 +18,7 @@ _hey_shell_keyseq() {
 _hey_shell_status() {
   local names=''
   [ "${HEY_SHELL_CHECK:-1}" = 0 ] || names=$(compgen -A alias -A function)
-  printf '\n%s\n' "$(HEY_SHELL_COLOR=always HEY_SHELL_TARGET=bash HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1")"
+  printf '%s\n' "$(HEY_SHELL_COLOR=always HEY_SHELL_TARGET=bash HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1")"
 }
 
 _hey_shell_fill() {
@@ -26,11 +26,13 @@ _hey_shell_fill() {
   [ -z "$request" ] && return
   local errf
   errf=$(mktemp)
+  printf '\n\033[2m[hey-shell] thinking...\033[0m'   # replaced below by the result or the error
   cmd=$(HEY_SHELL_TARGET=bash "$_hey_shell_bin" "$request" 2>"$errf") || {
-    printf '\n\033[31m%s\033[0m\n' "$(cat "$errf")"
+    printf '\r\033[K\033[31m%s\033[0m\n' "$(cat "$errf")"
     rm -f "$errf"
     return
   }
+  printf '\r\033[K'
   rm -f "$errf"
   [ -z "$cmd" ] && return
   READLINE_LINE=$cmd

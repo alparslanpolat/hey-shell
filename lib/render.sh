@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2034  # the results are globals read by bin/hey-shell
 # Terminal output for bin/hey-shell: color by purpose, wrapping, and the status line. Sourced by bin/hey-shell.
-#   hey_shell_colors          sets C_CMD C_MUTED C_AMBER C_RED C_GREEN C_OFF (empty when color is off)
+#   hey_shell_colors          sets C_CMD C_MUTED C_AMBER C_RED C_GREEN C_BRAND C_WORD C_OFF (empty when color is off)
 #   hey_shell_status          prints "Risk: MEDIUM · Check: OK" plus the reasons; run hey_shell_risk (and
 #                             hey_shell_check unless HEY_SHELL_CHECK=0) first
 #   hey_shell_render_explain  prints the command on its own lines, the wrapped explanation, a separate warning
@@ -11,7 +11,7 @@
 # Lime stays reserved for the logo.
 
 hey_shell_colors() {
-  C_CMD='' C_MUTED='' C_AMBER='' C_RED='' C_GREEN='' C_OFF=''
+  C_CMD='' C_MUTED='' C_AMBER='' C_RED='' C_GREEN='' C_BRAND='' C_WORD='' C_OFF=''
   [ -z "${NO_COLOR:-}" ] || return 0
   case "${HEY_SHELL_COLOR:-auto}" in
     never) return 0 ;;
@@ -23,6 +23,10 @@ hey_shell_colors() {
   C_AMBER=$'\033[38;5;214m'
   C_RED=$'\033[38;5;203m'
   C_GREEN=$'\033[38;5;114m'
+  case "${COLORTERM:-}" in   # the logo's lime and warm white, exact when the terminal has 24-bit color
+    truecolor|24bit) C_BRAND=$'\033[38;2;198;245;107m'; C_WORD=$'\033[38;2;241;242;234m' ;;
+    *)               C_BRAND=$'\033[38;5;155m';         C_WORD=$'\033[38;5;255m' ;;
+  esac
   C_OFF=$'\033[0m'
 }
 

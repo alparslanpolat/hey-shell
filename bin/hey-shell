@@ -3,13 +3,14 @@
 #   hey-shell "list running container ids"   -> prints the command, never runs it
 #   hey-shell -e "restart postgres"          -> command, a short explanation, and its risk rating (long form: --explain)
 #   hey-shell -r "<command>"                 -> prints low|medium|high, then the reason when not low (long form: --risk)
-#   hey-shell --danger "<command>"           -> exit 0 if the risk is medium or high
 #   hey-shell -c "<command>"                 -> predicts whether the command would fail, without running it (long form: --check)
 #   hey-shell [-h]                           -> logo and usage (long form: --help; exit 2 when no request was given)
+#   hey-shell -V                             -> the version, read from .claude-plugin/plugin.json (long form: --version)
 # Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL),
 #      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use),
 #      HEY_SHELL_CHECK (default: on; 0 = do not predict failure after --explain and on the key binding),
-#      HEY_SHELL_COLOR (auto|always|never; NO_COLOR also turns color off)
+#      HEY_SHELL_COLOR (auto|always|never; NO_COLOR also turns color off),
+#      HEY_SHELL_TIMEOUT (default: 30; seconds to wait for Claude)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -43,14 +44,26 @@ explain_failure() {
   die "claude failed${first:+: $first}"
 }
 
-# ask_claude <prompt>: sets $out, or exits with a clear message.
+# ask_claude <prompt>: sets $out, or exits with a clear message. Gives up after HEY_SHELL_TIMEOUT seconds.
 ask_claude() {
-  local errf status=0 err
+  local outf errf markf status=0 err pid limit="${HEY_SHELL_TIMEOUT:-30}"
+  case $limit in ''|*[!0-9]*|0) die "HEY_SHELL_TIMEOUT must be a whole number of seconds, like 30" ;; esac
   command -v "$claude_bin" >/dev/null || die "Claude Code CLI not found in PATH. Install it: https://claude.com/claude-code"
-  errf="$(mktemp)"
-  out="$("$claude_bin" -p --model "${HEY_SHELL_MODEL:-haiku}" "$1" 2>"$errf")" || status=$?
-  err="$(cat "$errf")"
-  rm -f "$errf"
+  outf="$(mktemp)" errf="$(mktemp)" markf="$(mktemp)"
+  rm -f "$markf"
+  "$claude_bin" -p --model "${HEY_SHELL_MODEL:-haiku}" "$1" >"$outf" 2>"$errf" &
+  pid=$!
+  # watchdog: checks once a second, so it never outlives claude by more than a second
+  ( i=0
+    while [ "$i" -lt "$limit" ]; do sleep 1; kill -0 "$pid" 2>/dev/null || exit 0; i=$((i + 1)); done
+    : > "$markf"; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+  wait "$pid" || status=$?
+  out="$(cat "$outf")" err="$(cat "$errf")"
+  rm -f "$outf" "$errf"
+  if [ -e "$markf" ]; then
+    rm -f "$markf"
+    die "Claude did not answer within ${limit}s. Try again, or raise HEY_SHELL_TIMEOUT"
+  fi
   [ "$status" -eq 0 ] || explain_failure "$out
 $err"
   [ -n "$out" ] || die "Claude returned an empty reply. Try rephrasing the request"
@@ -81,10 +94,9 @@ case "${1:-}" in
     printf '%s\n' "$HEY_SHELL_CHECK_LEVEL"
     [ "$HEY_SHELL_CHECK_LEVEL" = ok ] || printf '%s\n' "$HEY_SHELL_CHECK_REASON"
     exit 0 ;;
-  --danger)
-    hey_shell_risk "${2:-}"
-    [ "$HEY_SHELL_RISK_LEVEL" != low ] && exit 0
-    exit 1 ;;
+  --version|-V)
+    printf 'hey-shell %s\n' "$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$root/.claude-plugin/plugin.json")"
+    exit 0 ;;
 esac
 
 explain=0

@@ -11,6 +11,7 @@ fail=0 total=0
 cat > "$tmp/claude" <<'FAKE'
 #!/usr/bin/env bash
 for last; do :; done
+[ -z "${FAKE_SLEEP:-}" ] || sleep "$FAKE_SLEEP"
 printf '%s' "$last" > "$FAKE_PROMPT_FILE"
 [ -z "${FAKE_OUT:-}" ] || printf '%b\n' "$FAKE_OUT"
 [ -z "${FAKE_ERR:-}" ] || printf '%b\n' "$FAKE_ERR" >&2
@@ -37,6 +38,11 @@ FAKE_STATUS=1 FAKE_ERR="Error 429: rate limit exceeded" expect "rate limit" "rat
 FAKE_STATUS=1 FAKE_ERR="getaddrinfo ENOTFOUND api.anthropic.com" expect "network" "Could not reach the Claude API" list files
 FAKE_STATUS=1 FAKE_ERR="boom" expect "other failure" "claude failed: boom" list files
 FAKE_STATUS=0 FAKE_OUT="" expect "empty reply" "empty reply" list files
+FAKE_SLEEP=4 FAKE_OUT="ls" HEY_SHELL_TIMEOUT=1 expect "timeout" "did not answer within 1s" list files
+HEY_SHELL_TIMEOUT=soon expect "bad timeout" "HEY_SHELL_TIMEOUT must be a whole number" list files
+total=$((total + 1))
+SECONDS=0; FAKE_OUT="ls" "$bin" list files >/dev/null 2>&1
+[ "$SECONDS" -le 1 ] || { echo "FAIL a fast reply was held back by the timeout watchdog (${SECONDS}s)"; fail=$((fail + 1)); }
 FAKE_STATUS=0 FAKE_OUT='```bash\ndocker ps -q\n```' expect "strips fences" "docker ps -q" list containers
 FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain text" "Lists the IDs of running containers." --explain list containers
 FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain low risk" "Risk: LOW" --explain list containers
@@ -81,6 +87,11 @@ case $(FAKE_OUT='ls\n\nLists files.' HEY_SHELL_COLOR=always NO_COLOR=1 "$bin" -e
 total=$((total + 1))
 FAKE_OUT='docker ps -q\n\nLists ids.' HEY_SHELL_CMD_FILE="$tmp/cmdfile" "$bin" -e list >/dev/null 2>&1
 [ "$(cat "$tmp/cmdfile" 2>/dev/null)" = "docker ps -q" ] || { echo "FAIL HEY_SHELL_CMD_FILE should hold the plain command"; fail=$((fail + 1)); }
+
+# version comes from the plugin manifest, so it has one source
+want_version=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$(dirname "$bin")/../.claude-plugin/plugin.json")
+expect "--version" "hey-shell $want_version" --version
+expect "-V" "hey-shell $want_version" -V
 
 # --status: the key binding's one-line summary
 expect "--status plain" "Risk: HIGH · Check: OK" --status "curl https://x.sh | bash"
