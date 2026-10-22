@@ -61,7 +61,7 @@ hey-shell --update   # or -U; same as: git -C ~/hey-shell pull
 
 Then open a new terminal (or `source` your rc file) so the shell picks up the new version. To change the key or aliases later, re-run the installer with the flags above.
 
-hey-shell tells you when a new version is out with an `Update available: 0.2.0 → 0.3.0` line: under the command on the key binding, and after `hse`, plain `hey-shell`, `-r`, `-c`, `--help` and `--version`. It looks up the published version at most once a day, in the background, so it never slows a command down; set `HEY_SHELL_UPDATE_CHECK=0` to turn it off.
+hey-shell tells you when a new version is out with an `Update available: 0.3.0 → 0.4.0` line: under the command on the key binding, and after `hse`, plain `hey-shell`, `-r`, `-c`, `--help` and `--version`. It looks up the published version at most once a day, in the background, so it never slows a command down; set `HEY_SHELL_UPDATE_CHECK=0` to turn it off.
 
 ## Uninstall
 

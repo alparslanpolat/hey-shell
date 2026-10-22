@@ -12,13 +12,57 @@ _hey_shell_keyseq() {
   esac
 }
 
-# The labeled box and "Risk: ... · Check: ..." under the command (plain: zle -M cannot show color). The check is on by default (turn off with HEY_SHELL_CHECK=0)
-# and never runs the command.
+# The labeled box and "Risk: ... · Check: ..." for the command. The check is on by default (turn off with
+# HEY_SHELL_CHECK=0) and never runs the command. One column narrower than the terminal, so lines never wrap.
 _hey_shell_status_msg() {
   local names=''
   [[ ${HEY_SHELL_CHECK:-1} == 0 ]] || names="$(print -l -- ${(k)aliases} ${(k)functions})"
-  COLUMNS=$COLUMNS HEY_SHELL_COLOR=never HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1"
+  COLUMNS=$((COLUMNS - 1)) HEY_SHELL_COLOR=never HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1"
 }
+
+# Show the status under the prompt line, in color. zle -M cannot color, so the text goes in POSTDISPLAY and is
+# colored with region_highlight entries tagged memo=hey-shell (the colors of lib/render.sh, as 256-color numbers).
+# It disappears once the line is edited or run.
+_hey_shell_shown_for=''
+_hey_shell_show() {
+  local text=$'\n'$1 line word i s e o=0 base=${#BUFFER}
+  local -a hl
+  for line in "${(@f)text}"; do
+    s=$((base + o)) e=$((base + o + ${#line}))
+    case $line in
+      'SUGGESTED COMMAND'*) hl+=("$s $e fg=155,bold") ;;
+      ['╭╰']*) hl+=("$s $e fg=245") ;;
+      '│'*) hl+=("$s $e fg=255,bold" "$s $((s + 1)) fg=245" "$((e - 1)) $e fg=245")
+            [[ ${line[3]} == '$' ]] && hl+=("$((s + 2)) $((s + 3)) fg=155,bold") ;;
+      'Risk: '*)
+        hl+=("$s $e fg=245")
+        word=${${line#Risk: }%% *}
+        case $word in HIGH) hl+=("$((s + 6)) $((s + 6 + ${#word})) fg=203") ;; MEDIUM) hl+=("$((s + 6)) $((s + 12)) fg=214") ;; esac
+        i=${line[(i)Check: ]}
+        if (( i <= ${#line} )); then
+          [[ ${line[i+7,-1]} == OK ]] && hl+=("$((s + i + 6)) $e fg=114") || hl+=("$((s + i + 6)) $e fg=203")
+        fi ;;
+      'Update available:'*) hl+=("$s $e fg=245" "$s $((s + 17)) fg=155") ;;
+      ' '*) hl+=("$s $e fg=245") ;;
+    esac
+    o=$((o + ${#line} + 1))
+  done
+  _hey_shell_clear force
+  POSTDISPLAY=$text
+  region_highlight+=("${hl[@]/%/ memo=hey-shell}")
+  _hey_shell_shown_for=$BUFFER
+}
+
+# $1 = force: always remove the status; otherwise only once the line no longer holds the command it describes
+_hey_shell_clear() {
+  [[ -n $_hey_shell_shown_for ]] || return 0
+  [[ $1 == force || $BUFFER != "$_hey_shell_shown_for" ]] || return 0
+  POSTDISPLAY=''
+  region_highlight=("${(@)region_highlight:#*memo=hey-shell}")
+  _hey_shell_shown_for=''
+}
+_hey_shell_on_redraw() { _hey_shell_clear }
+_hey_shell_on_finish() { _hey_shell_clear force }
 
 _hey_shell_fill() {
   local request=$BUFFER cmd
@@ -34,7 +78,7 @@ _hey_shell_fill() {
   [[ -z $cmd ]] && return
   BUFFER=$cmd
   CURSOR=${#BUFFER}
-  zle -M "$(_hey_shell_status_msg "$cmd")"
+  _hey_shell_show "$(_hey_shell_status_msg "$cmd")"
 }
 
 # `hey-shell -e ...` explains, then leaves the command on the next prompt, ready to edit or run.
@@ -54,4 +98,10 @@ hey-shell() {
 }
 
 zle -N _hey_shell_fill
+autoload -Uz add-zle-hook-widget
+add-zle-hook-widget line-pre-redraw _hey_shell_on_redraw
+add-zle-hook-widget line-finish _hey_shell_on_finish
+# zsh-autosuggestions also draws in POSTDISPLAY: keep it from replacing the status right after the key
+typeset -ga ZSH_AUTOSUGGEST_IGNORE_WIDGETS
+ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(_hey_shell_fill)
 bindkey "$(_hey_shell_keyseq)" _hey_shell_fill

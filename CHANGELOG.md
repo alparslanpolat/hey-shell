@@ -2,6 +2,16 @@
 
 The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints it.
 
+## 0.3.0
+
+- The command is shown in a labeled box (`SUGGESTED COMMAND · REVIEW BEFORE RUNNING`), after `hse` and under the prompt on the key binding.
+- In zsh the box and the risk line under the prompt are now in color; they disappear once you edit or run the line.
+- Update notice: an `Update available` line when a newer version is published, checked at most once a day in the background (`HEY_SHELL_UPDATE_CHECK=0` turns it off).
+- `hey-shell --update` (`-U`) updates hey-shell in place.
+- `hse`, `hsr` and `hsc` accept `-h`, `-V` and `-U`.
+- Claude is called without tools or MCP servers, and requests are no longer saved in your Claude Code session history.
+- Animated demo in the README; smaller images.
+
 ## 0.2.0
 
 - `hse` / `hey-shell -e`: the command, a short explanation and its risk, then the command is left on your next prompt.
