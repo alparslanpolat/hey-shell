@@ -1,6 +1,6 @@
 <h1 align="center"><img src="docs/assets/banner.png" alt="hey-shell" width="640"></h1>
 
-![hey-shell demo: plain-English requests turned into shell commands](docs/assets/demo.gif)
+![hey-shell demo: checking a TLS certificate, freeing a port, refining a log pipeline with a # note, and fixing a typo with hsf](docs/assets/demo.gif)
 
 Type what you want in plain language, press a key (**Ctrl+G** by default, configurable), and your prompt line is replaced with the shell command. It is **never executed for you**: you review, edit and press Enter.
 
