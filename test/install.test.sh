@@ -52,6 +52,11 @@ ok '[[ $out == *"already exists"* ]] && [ "$(count "^alias ls=")" = 1 ]' "warns 
 new_home; printf 'export KEEP=1\n' > "$rc"; run --alias hs >/dev/null; run --uninstall >/dev/null
 ok '[ "$(count "hey-shell")" = 0 ] && [ "$(count "^alias hs")" = 0 ] && [ "$(count "KEEP=1")" = 1 ]' "uninstall removes the block and the alias only"
 
+new_home; printf 'export A=1\n' > "$rc"; run --aliases >/dev/null; run --key alt+o >/dev/null; run --key ctrl+o >/dev/null
+ok '[ "$(count "^$")" = 1 ]'                                   "re-installing does not pile up blank lines"
+run --uninstall >/dev/null
+ok '[ "$(cat "$rc")" = "export A=1" ]'                         "uninstall leaves the rc file as it was"
+
 new_home; run >/dev/null; out=$(run)
 ok '[[ $out == *"already installed"* ]]'                       "plain re-run says already installed"
 

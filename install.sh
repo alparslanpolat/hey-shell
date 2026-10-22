@@ -48,8 +48,17 @@ esac
 
 is_installed() { [ -f "$rc" ] && grep -qF "$begin" "$rc"; }
 
-# the rc file without the hey-shell block
-outside_block() { awk -v b="$begin" -v e="$end" '$0==b{skip=1;next} $0==e{skip=0;next} !skip' "$rc"; }
+# the rc file without the hey-shell block and the blank lines just before it (the install adds one back), so
+# re-running the installer does not pile up blank lines
+outside_block() {
+  awk -v b="$begin" -v e="$end" '
+    $0==b {skip=1; blanks=0; next}
+    $0==e {skip=0; next}
+    skip {next}
+    $0=="" {blanks++; next}
+    {for (; blanks > 0; blanks--) print ""; print}
+    END {for (; blanks > 0; blanks--) print ""}' "$rc"
+}
 
 # the name of the alias in the hey-shell block whose command is $1, if any
 block_alias_for() {
