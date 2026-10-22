@@ -99,11 +99,11 @@ hey-shell() {
       [[ ${HEY_SHELL_CHECK:-1} == 0 ]] || names="$(print -l -- ${(k)aliases} ${(k)functions})"
       cmdfile=$(mktemp)
       out=$(HEY_SHELL_LAST_CMD=$last HEY_SHELL_LAST_STATUS=${last:+$last_status} HEY_SHELL_COLOR=$color \
-        HEY_SHELL_CMD_FILE=$cmdfile HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || { local st=$?; rm -f "$cmdfile"; return $st }
+        HEY_SHELL_CMD_FILE=$cmdfile HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" "$@") || { local st=$?; rm -f "$cmdfile"; return $st }
       print -r -- "$out"
       [[ -s $cmdfile ]] && print -rz -- "$(<$cmdfile)"
       rm -f "$cmdfile" ;;
-    *) command hey-shell "$@" ;;
+    *) "$_hey_shell_bin" "$@" ;;
   esac
 }
 

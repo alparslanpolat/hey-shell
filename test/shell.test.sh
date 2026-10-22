@@ -38,15 +38,21 @@ session() {
     *zsh)  cmd=("$sh" -f -i) ;;
   esac
   { printf "source '%s/shell/hey-shell.%s'; PS1='> '\n" "$root" "${sh##*/}"; printf '%s\n' "$@" exit; } \
-    | env TERM=xterm-256color HISTFILE="$tmp/history" HEY_SHELL_CLAUDE="$tmp/claude" HEY_SHELL_UPDATE_CHECK=0 \
+    | env PATH="$clean_path" TERM=xterm-256color HISTFILE="$tmp/history" HEY_SHELL_CLAUDE="$tmp/claude" HEY_SHELL_UPDATE_CHECK=0 \
         HEY_SHELL_HISTORY=0 HEY_SHELL_CONTEXT=0 PTY_STEP_DELAY="${PTY_STEP_DELAY:-1.5}" \
         python3 -I "$root/test/pty_run.py" "${cmd[@]}" > "$tmp/session.log" 2>&1
 }
 
+# hey-shell must work from the integration alone, without its bin/ on PATH (CI runners do not have it)
+clean_path=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/hey-shell/bin$' | paste -sd: -)
+
 # every bash on the machine (macOS ships 3.2, which has no READLINE_LINE and uses a fallback) and zsh
 shells=$( { command -v bash; ls /bin/bash /usr/bin/bash /usr/local/bin/bash /opt/homebrew/bin/bash 2>/dev/null; command -v zsh; } | awk '!seen[$0]++')
+tested=()
 for sh in $shells; do
   [ -x "$sh" ] || continue
+  for t in ${tested[@]+"${tested[@]}"}; do [ "$sh" -ef "$t" ] && continue 2; done # /bin/bash -> /usr/bin/bash
+  tested+=("$sh")
   name="$sh $("$sh" -c 'echo ${BASH_VERSION:-$ZSH_VERSION}')"
 
   # the request itself is valid shell that would leave a file behind: the key must never run it

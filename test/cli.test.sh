@@ -205,7 +205,7 @@ total=$((total + 1))
 case $out in *"│ \$ tar -xzf a.tgz -C /opt"*"Unpacks the archive into /opt."*) ;; *) echo "FAIL --what output: $out"; fail=$((fail + 1)) ;; esac
 total=$((total + 1))
 [ ! -s "$tmp/what.cmd" ] || { echo "FAIL --what must not prefill the prompt"; fail=$((fail + 1)); }
-LANG=tr_TR.UTF-8 FAKE_OUT='x' "$bin" -w "ls" >/dev/null 2>&1
+LC_ALL='' LC_MESSAGES='' LANG=tr_TR.UTF-8 FAKE_OUT='x' "$bin" -w "ls" >/dev/null 2>&1
 prompt_has "--what follows the locale" "Write the explanation in Turkish."
 
 # --fix: the given command, or the last one from the shell integration with its exit status
