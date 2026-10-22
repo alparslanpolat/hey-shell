@@ -128,10 +128,10 @@ total=$((total + 1))
 expect "no-arg usage" "usage: hey-shell [options] <request>"
 total=$((total + 1))
 expect "no-arg logo" "'---.  .-----'  | | | |  __/ |_| |_____"
-expect "no-arg tagline" "hey-shell · your words, shell commands"
+expect "no-arg tagline" "hey-shell v$("$bin" -V | cut -d" " -f2) · your words, shell commands"
 expect "help usage" "usage: hey-shell [options] <request>" --help
 expect "help options" "-e, --explain   explain the command" --help
-expect "help logo" "hey-shell · your words, shell commands" -h
+expect "help logo" "hey-shell v$("$bin" -V | cut -d" " -f2) · your words, shell commands" -h
 expect "help logo art" "'---.  .-----'  | | | |  __/ |_| |_____" --help
 total=$((total + 1))
 "$bin" --help >/dev/null 2>&1; [ $? -eq 0 ] || { echo "FAIL --help exit code should be 0"; fail=$((fail + 1)); }
