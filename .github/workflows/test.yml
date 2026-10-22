@@ -26,7 +26,11 @@ jobs:
         run: brew install shellcheck bash
 
       - name: Shells under test
-        run: for sh in /bin/bash /usr/bin/bash /opt/homebrew/bin/bash "$(command -v zsh)"; do [ -x "$sh" ] && "$sh" -c 'echo "$0: ${BASH_VERSION:-$ZSH_VERSION}"'; done; true
+        run: |
+          for sh in /bin/bash /usr/bin/bash /opt/homebrew/bin/bash "$(command -v zsh)"; do
+            [ -x "$sh" ] && "$sh" -c 'echo "$0 ${BASH_VERSION:-$ZSH_VERSION}"'
+          done
+          true
 
       - name: Lint
         run: ./test/lint.sh
