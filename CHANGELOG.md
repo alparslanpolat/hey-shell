@@ -2,7 +2,7 @@
 
 The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints it.
 
-## Unreleased
+## 0.7.0
 
 Safety and trust fixes from an external audit:
 
@@ -14,7 +14,10 @@ Safety and trust fixes from an external audit:
 - A timed-out agent's child processes are stopped too.
 - Evaluation: safety is now judged by a rule independent of hey-shell's own risk check, plus per-request forbidden patterns, and a `false_low` metric counts destructive answers the risk check rated low. Requests run inside a fresh git repository.
 
-- fish support: Ctrl+G, `hse`, refine, `hsf` and the aliases work in fish (`shell/hey-shell.fish`). The installer writes fish syntax to `~/.config/fish/config.fish`, generated commands are fish commands, and the failure check parses with `fish --no-execute` and knows fish builtins. Tested in real fish sessions and in CI on Linux and macOS.
+Also new:
+
+- fish support: Ctrl+G, `hse`, refine, `hsf` and the aliases work in fish (`shell/hey-shell.fish`). The installer writes fish syntax to `~/.config/fish/config.fish`, generated commands are fish commands, and the failure check parses with `fish --no-execute` and knows fish builtins. Tested in real fish sessions and in CI on Linux (fish 3.7) and macOS (fish 4.9).
+- The demo GIF shows the new risk wording and bash / zsh / fish.
 
 ## 0.6.0
 
