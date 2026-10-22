@@ -83,8 +83,12 @@ code.cmd b { color: var(--lime); font-weight: 500; }
 .card p { margin-top: 8px; color: var(--muted); font-size: 17px; }
 .card code, .agents code, .install code { font: 15px var(--mono); color: var(--text); background: #1a1f1c; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
 .agents { padding: 72px 0 0; }
-.agent-list { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 24px; }
-.agent-list .chip b { color: var(--lime); font-weight: 500; }
+.agent-table { margin-top: 24px; display: grid; gap: 12px; }
+.agent-row { display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: baseline; border: 1px solid var(--line); border-radius: 12px; padding: 16px 22px; }
+.agent-row b { font: 600 18px var(--mono); color: var(--lime); }
+.agent-row b small { display: block; font: 14px var(--mono); color: var(--muted); margin-top: 2px; }
+.agent-row p { color: var(--muted); font-size: 17px; }
+.agent-row p strong { color: var(--text); font-weight: 600; }
 .install { padding: 72px 0 24px; }
 .install > p { margin-top: 10px; color: var(--muted); font-size: 19px; }
 .block { position: relative; margin-top: 26px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px 28px; font: 18px/1.9 var(--mono); overflow-x: auto; }
@@ -103,6 +107,7 @@ footer a:hover { color: var(--lime); }
   .hero { grid-template-columns: 1fr; padding-top: 48px; }
   .steps { grid-template-columns: 1fr; gap: 36px; }
   .grid { grid-template-columns: 1fr; }
+  .agent-row { grid-template-columns: 1fr; gap: 6px; }
   .cta { flex-direction: column; align-items: flex-start; }
   code.cmd { white-space: normal; word-break: break-all; font-size: 17px; }
   .body { font-size: 20px; padding: 28px 22px 34px; }
@@ -163,15 +168,21 @@ footer a:hover { color: var(--lime); }
       <div class="card"><h3>Fix a failed command</h3><p>Run <code>hsf</code> right after a command fails. You get a corrected version on your next prompt, with what was wrong. Nothing is re-run.</p></div>
       <div class="card"><h3>Explain any command</h3><p><code>hse &lt;request&gt;</code> adds a short explanation, and <code>hsw "&lt;command&gt;"</code> explains a command you found somewhere, before you run it.</p></div>
       <div class="card"><h3>Fits your setup</h3><p>The agent is told which tools you have (<code>rg</code>, <code>fd</code>, <code>jq</code>…) and what the project is (pnpm, Makefile targets, compose). Names only, never file contents.</p></div>
-      <div class="card"><h3>Risk you can see</h3><p>Deletes, force-pushes, overwrites, cloud deletes and <code>curl | sh</code> are flagged in amber or red. The README says what pattern matching cannot catch.</p></div>
+      <div class="card"><h3>Risk you can see</h3><p>Deletes, force-pushes, overwrites, cloud deletes and download-and-run (<code>curl … | /bin/bash</code>) are flagged in amber or red. Anything else shows <code>Risk: none recognized</code>: no known pattern matched, which is not the same as safe.</p></div>
       <div class="card"><h3>A check before you run</h3><p>Missing programs, syntax errors and wrong context (no git repo, no tmux server) show as <code>Check: LIKELY FAIL</code>. It never runs the command.</p></div>
+      <div class="card"><h3>Private by default</h3><p>Nothing is logged unless you turn history on, and then only for you. Your folder is sent as <code>~/project</code>, without your user name.</p></div>
+      <div class="card"><h3>bash, zsh and fish</h3><p>The same shortcut and commands in all three, with commands written for your shell: <code>set -gx</code> in fish, <code>export</code> in bash and zsh.</p></div>
     </div>
   </section>
 
   <section class="agents" id="agents">
     <h2>Choose your agent</h2>
-    <p>hey-shell asks the AI agent CLI you already use and are logged in to. Claude Code is the default; switch with one flag. Everything else works the same.</p>
-    <div class="agent-list"><span class="chip"><b>claude</b> · Claude Code</span><span class="chip"><b>codex</b> · OpenAI Codex CLI</span><span class="chip"><b>gemini</b> · Google Gemini CLI</span></div>
+    <p>hey-shell asks the AI agent CLI you already use and are logged in to, and never runs what comes back. Agents can use their own tools while they answer, so here is exactly what hey-shell restricts for each:</p>
+    <div class="agent-table">
+      <div class="agent-row"><b>claude<small>Claude Code · default</small></b><p><strong>Text only.</strong> No tools, no MCP servers, no saved session.</p></div>
+      <div class="agent-row"><b>codex<small>OpenAI Codex CLI</small></b><p><strong>No writes.</strong> A read-only sandbox your Codex config cannot loosen. It may read files in the folder while answering.</p></div>
+      <div class="agent-row"><b>gemini<small>Google Gemini CLI · experimental</small></b><p><strong>Not restricted by hey-shell.</strong> Gemini CLI has no documented way to turn its tools off, so this relies on its own defaults.</p></div>
+    </div>
     <div class="block"><span>$ </span>~/hey-shell/install.sh --agent codex</div>
   </section>
 
@@ -182,12 +193,12 @@ footer a:hover { color: var(--lime); }
 
   <section class="install" id="install">
     <h2>Install</h2>
-    <p>One line. It downloads hey-shell and asks for your key and short aliases. Then open a new terminal.</p>
+    <p>One line. It downloads the newest release and asks for your key and short aliases. Then open a new terminal.</p>
     <div class="block">
       <button class="copy" type="button" data-copy>Copy</button>
       <div id="install-cmd"><span>$ </span>curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash</div>
     </div>
-    <p class="safe">Add <code>bash -s -- --agent codex</code> (or <code>gemini</code>) to use those instead of Claude Code. Prefer to read it first? <a href="install">The script</a> is about 40 lines, or install by hand: <code>git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell &amp;&amp; ~/hey-shell/install.sh</code></p>
+    <p class="safe">Add <code>bash -s -- --agent codex</code> (or <code>gemini</code>) to use those instead of Claude Code. Prefer to read it first? <a href="install">The script</a> is about 60 lines, or install by hand: <code>git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell &amp;&amp; ~/hey-shell/install.sh</code></p>
     <p class="safe">Then try <code>hse how to free up disk space</code> for the command with an explanation, or <code>hsc "&lt;command&gt;"</code> to check one before you run it.</p>
     <p class="safe">Generated commands are only placed on your prompt, never executed. Always read them before pressing Enter.</p>
   </section>
