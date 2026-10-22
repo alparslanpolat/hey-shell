@@ -6,7 +6,7 @@
 #   hey-shell -w "<command>"                 -> explains a command you already have (long form: --what)
 #   hey-shell --fix ["<command>"]            -> a corrected version of a failed command; the shell integration
 #                                               passes your last command and its exit status when none is given
-#   hey-shell --history [text]               -> your last 20 requests and their commands, optionally filtered
+#   hey-shell --history [text|--clear]       -> your last 20 requests and their commands (HEY_SHELL_HISTORY=1)
 #   hey-shell -r "<command>"                 -> prints low|medium|high, then the reason when not low (long form: --risk)
 #   hey-shell -c "<command>"                 -> predicts whether the command would fail, without running it (long form: --check)
 #   hey-shell [-h]                           -> logo and usage (long form: --help; exit 2 when no request was given)
@@ -21,7 +21,8 @@
 #      HEY_SHELL_TIMEOUT (default: 30; seconds to wait for the agent),
 #      HEY_SHELL_UPDATE_CHECK (default: on; 0 = no "Update available" line),
 #      HEY_SHELL_CONTEXT (default: on; 0 = do not tell the agent about installed tools and the project),
-#      HEY_SHELL_HISTORY (default: on; 0 = do not log requests to ~/.local/state/hey-shell/history.tsv)
+#      HEY_SHELL_HISTORY (default: off; 1 = log requests to ~/.local/state/hey-shell/history.tsv, private to you,
+#      last 500 kept; `hey-shell --history --clear` deletes it)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -58,13 +59,18 @@ case $agent in
   *) agent_name='' ;; # reported only when a request needs the agent, so --risk, --help etc. still work
 esac
 
-# agent_command <prompt>: sets agent_cmd to the agent CLI's command line for one text-only answer
+# agent_command <prompt>: sets agent_cmd to the agent CLI's command line for one answer. hey-shell never runs
+# what comes back, but an agent CLI may use its own tools while answering, so each one is restricted as far as
+# its documented flags allow (README "Choose your agent" lists what is enforced for each):
+#   claude  no tools at all, no MCP servers, no saved session: text only, enforced by the flags
+#   codex   read-only sandbox, user config.toml ignored so it cannot loosen that: no writes, but it may read files
+#   gemini  no documented way to turn its tools off; relies on Gemini CLI's headless defaults, not enforced here
 agent_command() {
   case $agent in
-    claude) # no tools or MCP servers, and no saved session cluttering `claude --resume`
+    claude)
       agent_cmd=("$agent_bin" -p --model "${HEY_SHELL_MODEL:-haiku}" --tools "" --strict-mcp-config --no-session-persistence "$1") ;;
-    codex) # exec is read-only by default; --ephemeral saves no session; it may run outside a git repository
-      agent_cmd=("$agent_bin" exec --ephemeral --skip-git-repo-check)
+    codex) # --ephemeral saves no session; --skip-git-repo-check lets it answer outside a git repository
+      agent_cmd=("$agent_bin" exec --sandbox read-only --ignore-user-config --ephemeral --skip-git-repo-check)
       [ -z "${HEY_SHELL_MODEL:-}" ] || agent_cmd+=(-m "$HEY_SHELL_MODEL")
       agent_cmd+=("$1") ;;
     gemini) # headless: -p answers once and exits; -o text prints only the answer
@@ -80,12 +86,19 @@ notice() { [ -t 2 ] || return 0; hey_shell_colors; hey_shell_update_notice >&2; 
 
 history_file="${XDG_STATE_HOME:-$HOME/.local/state}/hey-shell/history.tsv"
 
-# log_history <request> <command>: one tab-separated line per answer, kept on this machine only
+# log_history <request> <command>: one tab-separated line per answer, only with HEY_SHELL_HISTORY=1. Requests can
+# hold hostnames, paths or secrets, so the file is readable by you alone and keeps only the last 500 answers.
+history_max=500
 log_history() {
-  [ "${HEY_SHELL_HISTORY:-1}" != 0 ] || return 0
-  mkdir -p "$(dirname "$history_file")" 2>/dev/null || return 0
-  printf '%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M')" "$(printf '%s' "$1" | tr '\t\n' '  ')" \
-    "$(printf '%s' "$2" | tr '\t\n' '  ')" >> "$history_file" 2>/dev/null || true
+  [ "${HEY_SHELL_HISTORY:-0}" = 1 ] || return 0
+  ( umask 077
+    mkdir -p "$(dirname "$history_file")" 2>/dev/null || exit 0
+    printf '%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M')" "$(printf '%s' "$1" | tr '\t\n' '  ')" \
+      "$(printf '%s' "$2" | tr '\t\n' '  ')" >> "$history_file" 2>/dev/null || exit 0
+    chmod 600 "$history_file" 2>/dev/null
+    if [ "$(wc -l < "$history_file")" -gt "$history_max" ]; then
+      tail -n "$history_max" "$history_file" > "$history_file.tmp" && mv -f "$history_file.tmp" "$history_file"
+    fi ) || true
 }
 
 # validate_command <text>: sets $command_line to the command in the agent's reply, or exits with a clear message.
@@ -143,7 +156,7 @@ ask_agent() {
   # watchdog: checks once a second, so it never outlives the agent by more than a second
   ( i=0
     while [ "$i" -lt "$limit" ]; do sleep 1; kill -0 "$pid" 2>/dev/null || exit 0; i=$((i + 1)); done
-    : > "$markf"; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+    : > "$markf"; pkill -TERM -P "$pid" 2>/dev/null; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 & # and its children
   wait "$pid" || status=$?
   out="$(cat "$outf")" err="$(cat "$errf")"
   rm -f "$outf" "$errf"
@@ -202,7 +215,16 @@ case "${1:-}" in
   --history)
     shift
     hey_shell_colors
-    [ -s "$history_file" ] || { echo "no history yet${HEY_SHELL_HISTORY:+ (HEY_SHELL_HISTORY=$HEY_SHELL_HISTORY)}"; exit 0; }
+    if [ "${1:-}" = --clear ]; then
+      rm -f "$history_file" "$history_file.tmp"
+      echo "history cleared"
+      exit 0
+    fi
+    if [ ! -s "$history_file" ]; then
+      [ "${HEY_SHELL_HISTORY:-0}" = 1 ] && echo "no history yet" \
+        || echo "history is off; set HEY_SHELL_HISTORY=1 to keep your requests (on this machine only)"
+      exit 0
+    fi
     grep -iF -- "${*:-}" "$history_file" | tail -20 | while IFS=$'\t' read -r when req cmd; do
       printf '%s%s%s  %s\n    %s$%s %s%s%s\n' "$C_MUTED" "$when" "$C_OFF" "$req" "$C_BRAND" "$C_OFF" "$C_CMD" "$cmd" "$C_OFF"
     done
@@ -235,7 +257,11 @@ case "$(uname -s)" in
 esac
 shell_name="${HEY_SHELL_TARGET:-$(basename "${SHELL:-bash}")}"
 
-context="Environment: $os, $shell_name, current directory $PWD. $(hey_shell_context)"
+# the folder relative to your home (~/project), so your user name and home path are not sent
+here="$PWD"
+# shellcheck disable=SC2088 # a literal ~ is the point: it is text for the agent, not a path to expand
+case $here in "$HOME") here='~' ;; "$HOME"/*) here="~/${here#"$HOME"/}" ;; esac
+context="Environment: $os, $shell_name, current directory $here. $(hey_shell_context)"
 rules="Always answer with the command that does the task: never reply with a --help or man lookup unless the task asks how to use a tool, and if unsure which tool the user has, pick the most common one. Prefer portable, read-only commands. Do not use sudo or destructive commands (rm, kill, force flags, drops, prune) unless the task explicitly asks for them."
 explain_format="line 1 is exactly one $shell_name command (no markdown, no backticks); line 2 is blank; then a plain-language explanation of at most two short sentences"
 warning_format="then, only if there is a real risk or precondition, one final line that starts with 'Warning: ' followed by one short sentence (keep the word 'Warning:' in English)"

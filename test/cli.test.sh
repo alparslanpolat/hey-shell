@@ -53,10 +53,10 @@ SECONDS=0; FAKE_OUT="ls" "$bin" list files >/dev/null 2>&1
 [ "$SECONDS" -le 1 ] || { echo "FAIL a fast reply was held back by the timeout watchdog (${SECONDS}s)"; fail=$((fail + 1)); }
 FAKE_STATUS=0 FAKE_OUT='```bash\ndocker ps -q\n```' expect "strips fences" "docker ps -q" list containers
 FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain text" "Lists the IDs of running containers." --explain list containers
-FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain low risk" "Risk: LOW" --explain list containers
+FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "explain low risk" "Risk: none recognized" --explain list containers
 FAKE_STATUS=0 FAKE_OUT='rm -rf build\n\nDeletes the build directory.' expect "explain high risk" "Risk: HIGH" --explain clean build
 FAKE_STATUS=0 FAKE_OUT='rm -rf build\n\nDeletes the build directory.' expect "explain risk reason" "risk: force or recursive delete" --explain clean build
-FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "-e short flag" "Risk: LOW" -e list containers
+FAKE_STATUS=0 FAKE_OUT='docker ps -q\n\nLists the IDs of running containers.' expect "-e short flag" "Risk: none recognized" -e list containers
 expect "-r short flag" "force or recursive delete" -r "rm -rf x"
 expect "-r joins unquoted words" "force or recursive delete" -r rm -rf x
 expect "-c joins unquoted words" "'nonexistent-zz' not found" -c nonexistent-zz --help
@@ -64,7 +64,7 @@ expect "-c joins unquoted words" "'nonexistent-zz' not found" -c nonexistent-zz 
 # failure check after --explain (on by default, HEY_SHELL_CHECK=0 turns it off)
 FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check fails" "Check: LIKELY FAIL" --explain run a thing
 FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check reason" "check: 'nonexistent-prog-xyz' not found" --explain run a thing
-FAKE_OUT='ls -la\n\nLists files.' expect "explain check ok" "Risk: LOW · Check: No known issues" --explain list files
+FAKE_OUT='ls -la\n\nLists files.' expect "explain check ok" "Risk: none recognized · Check: No known issues" --explain list files
 total=$((total + 1))
 case $(FAKE_OUT='nonexistent-prog-xyz\n\nDoes a thing.' HEY_SHELL_CHECK=0 "$bin" --explain run a thing 2>&1) in
   *"Check:"*) echo "FAIL HEY_SHELL_CHECK=0 must turn the check off"; fail=$((fail + 1)) ;;
@@ -82,7 +82,7 @@ total=$((total + 1))
   || { echo "FAIL the explanation is not wrapped to 78 columns"; fail=$((fail + 1)); }
 total=$((total + 1))
 printf '%s\n' "$out" | grep -qx 'Warning: removal is permanent.' || { echo "FAIL the warning should be on its own line"; fail=$((fail + 1)); }
-FAKE_OUT='ls\n\nLists files.' expect "status is one line" "Risk: LOW · Check: No known issues" -e list files
+FAKE_OUT='ls\n\nLists files.' expect "status is one line" "Risk: none recognized · Check: No known issues" -e list files
 
 # color: off when piped, on with HEY_SHELL_COLOR=always, NO_COLOR wins
 total=$((total + 1))
@@ -172,6 +172,14 @@ got=$("$tmp/clone/bin/hey-shell" -U 2>&1); total=$((total + 1))
 case $got in *"updated: "*" → 9.9.9"*) ;; *) echo "FAIL --update should pull the new version: $got"; fail=$((fail + 1)) ;; esac
 got=$("$tmp/origin.src/bin/hey-shell" --update 2>&1); total=$((total + 1))
 case $got in *"is not a git checkout"*) ;; *) echo "FAIL --update outside a checkout: $got"; fail=$((fail + 1)) ;; esac
+# --update on a release tag (how the one-line installer leaves it) moves to the newest release, compared as numbers
+git -C "$tmp/origin" -c user.name=t -c user.email=t@t tag v9.9.0
+git -C "$tmp/origin" -c user.name=t -c user.email=t@t commit -q --allow-empty -m next && git -C "$tmp/origin" tag v9.10.0
+git -c advice.detachedHead=false clone -q --branch v9.9.0 "$tmp/origin" "$tmp/tagged"
+"$tmp/tagged/bin/hey-shell" --update >/dev/null 2>&1
+total=$((total + 1))
+[ "$(git -C "$tmp/tagged" describe --tags --exact-match 2>/dev/null)" = v9.10.0 ] \
+  || { echo "FAIL --update on a release should move to the newest release"; fail=$((fail + 1)); }
 expect "help lists update" "-U, --update    update to the latest version" --help
 expect "hse -h" "usage: hey-shell [options] <request>" --explain -h
 expect "hsr -V" "hey-shell " -r -V
@@ -219,16 +227,35 @@ expect "--fix without a command" "no command to fix" --fix
 FAKE_OUT='ls\n\nx' "$bin" -e list files >/dev/null 2>&1
 prompt_has "-e language" "in the same language as the task's words"
 
-# history: logged locally, searchable, off with HEY_SHELL_HISTORY=0
+# history: off unless HEY_SHELL_HISTORY=1; then private to the user, capped at 500 answers, and clearable
+hist="$tmp/state/hey-shell/history.tsv"
 rm -rf "$tmp/state"
-FAKE_OUT='docker ps -q' "$bin" list container ids >/dev/null 2>&1
-FAKE_OUT='ls -la' HEY_SHELL_HISTORY=0 "$bin" secret request >/dev/null 2>&1
+FAKE_OUT='ls -la' "$bin" list my files >/dev/null 2>&1
+total=$((total + 1))
+[ ! -e "$hist" ] || { echo "FAIL history must be off by default"; fail=$((fail + 1)); }
+expect "history off says how to turn it on" "set HEY_SHELL_HISTORY=1" --history
+FAKE_OUT='docker ps -q' HEY_SHELL_HISTORY=1 "$bin" list container ids >/dev/null 2>&1
 expect "history lists requests" "list container ids" --history
 expect "history shows commands" "docker ps -q" --history docker
 total=$((total + 1))
-case $("$bin" --history) in *"secret request"*) echo "FAIL HEY_SHELL_HISTORY=0 must not log"; fail=$((fail + 1)) ;; esac
-total=$((total + 1))
 [ -z "$("$bin" --history nomatch)" ] || { echo "FAIL --history filter should hide other requests"; fail=$((fail + 1)); }
+total=$((total + 1))
+[ "$(ls -l "$hist" | cut -c1-10)" = "-rw-------" ] || { echo "FAIL the history file must be readable by its owner only"; fail=$((fail + 1)); }
+for i in $(seq 1 505); do printf '2026-01-01 00:00\told %s\tls\n' "$i"; done >> "$hist"
+FAKE_OUT='ls' HEY_SHELL_HISTORY=1 "$bin" newest request >/dev/null 2>&1
+total=$((total + 1))
+[ "$(wc -l < "$hist" | tr -d ' ')" = 500 ] && tail -1 "$hist" | grep -q "newest request" \
+  || { echo "FAIL history should keep only the last 500 answers"; fail=$((fail + 1)); }
+expect "history --clear" "history cleared" --history --clear
+total=$((total + 1))
+[ ! -e "$hist" ] || { echo "FAIL --history --clear must delete the file"; fail=$((fail + 1)); }
+
+# the folder is sent relative to home: no user name or home path
+mkdir -p "$tmp/home/projects/app"
+(cd "$tmp/home/projects/app" && HOME="$tmp/home" FAKE_OUT='ls' "$bin" list files >/dev/null 2>&1)
+prompt_has "path relative to home" "current directory ~/projects/app."
+total=$((total + 1))
+case $(cat "$tmp/prompt") in *"$tmp/home"*) echo "FAIL the home path must not be sent"; fail=$((fail + 1)) ;; esac
 
 # reply validation: what reaches your prompt is one clean command, or a clear error
 FAKE_OUT='$ ls -la' expect "strips a \$ prompt" "ls -la" list files
@@ -254,7 +281,7 @@ has_args() { # name expected-substring
   case " $(args)" in *" $2"*) ;; *) printf 'FAIL %s\n  wanted args: %s\n  got: %s\n' "$1" "$2" "$(args)"; fail=$((fail + 1)) ;; esac
 }
 FAKE_OUT='ls' HEY_SHELL_AGENT=codex HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1
-has_args "codex: exec, no session, outside git" "exec --ephemeral --skip-git-repo-check Reply with exactly one"
+has_args "codex: read-only sandbox, user config ignored, no session, outside git" "exec --sandbox read-only --ignore-user-config --ephemeral --skip-git-repo-check Reply with exactly one"
 total=$((total + 1))
 case " $(args)" in *" --tools"*|*" -p "*|*" -m "*) echo "FAIL codex must not get claude flags or a model it was not given"; fail=$((fail + 1)) ;; esac
 FAKE_OUT='ls' HEY_SHELL_AGENT=codex HEY_SHELL_MODEL=gpt-5-mini HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1

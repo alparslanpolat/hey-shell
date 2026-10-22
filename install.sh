@@ -49,7 +49,37 @@ case "$target" in
   *) echo "unsupported shell: $target (use --shell bash|zsh|fish)" >&2; exit 1 ;;
 esac
 
-is_installed() { [ -f "$rc" ] && grep -qF "$begin" "$rc"; }
+# The rc file must hold either no hey-shell markers or exactly one start marker followed by one end marker.
+# Anything else (an edit, a merge, an interrupted write) stops the installer before it changes a byte: removing
+# a block whose end marker is missing would otherwise delete everything after its start.
+if [ -f "$rc" ]; then
+  n_begin=$(grep -cxF "$begin" "$rc" || true) n_end=$(grep -cxF "$end" "$rc" || true)
+  if [ "$n_begin" != "$n_end" ] || [ "$n_begin" -gt 1 ] || { [ "$n_begin" = 1 ] && \
+       [ "$(grep -nxF "$begin" "$rc" | cut -d: -f1)" -gt "$(grep -nxF "$end" "$rc" | cut -d: -f1)" ]; }; then
+    echo "hey-shell: $rc has a damaged hey-shell block ($n_begin \"$begin\" and $n_end \"$end\" lines)." >&2
+    echo "Nothing was changed. Fix or remove those lines by hand, then run the installer again." >&2
+    exit 1
+  fi
+fi
+
+is_installed() { [ -f "$rc" ] && grep -qxF "$begin" "$rc"; }
+
+# write_rc <file>: makes <file> the new rc file. The previous one is kept as <rc>.hey-shell-backup. The new
+# content is written next to the rc file and renamed over it, so an interruption leaves the old or the new
+# file, never half of one; a symlinked rc file (dotfile managers) is written through, keeping the link.
+write_rc() {
+  local new=$1 tmp
+  [ ! -f "$rc" ] || cp -p "$rc" "$rc.hey-shell-backup"
+  if [ -L "$rc" ]; then
+    cat "$new" > "$rc"
+  else
+    tmp="$(mktemp "$rc.hey-shell.XXXXXX")"
+    [ ! -f "$rc" ] || cp -p "$rc" "$tmp"   # keep the rc file's permissions
+    cat "$new" > "$tmp"
+    mv -f "$tmp" "$rc"
+  fi
+  rm -f "$new"
+}
 
 # the rc file without the hey-shell block and the blank lines just before it (the install adds one back), so
 # re-running the installer does not pile up blank lines
@@ -71,10 +101,10 @@ block_alias_for() {
 }
 
 remove_block() {
-  local tmp
-  tmp="$(mktemp)"
-  outside_block > "$tmp"
-  cat "$tmp" > "$rc" && rm -f "$tmp"
+  local new
+  new="$(mktemp)"
+  outside_block > "$new"
+  write_rc "$new"
 }
 
 if [ "$uninstall" = 1 ]; then
@@ -101,6 +131,10 @@ case "$agent" in
   gemini) agent_cli=gemini agent_product="the Gemini CLI (https://github.com/google-gemini/gemini-cli)" ;;
 esac
 command -v "$agent_cli" >/dev/null || echo "warning: '$agent_cli' CLI not found in PATH; install $agent_product first" >&2
+case "$agent" in # what hey-shell can and cannot enforce while the agent answers (README "Choose your agent")
+  codex)  echo "note: Codex runs in a read-only sandbox with your config.toml ignored, so it cannot change files; it may still read them while answering" ;;
+  gemini) echo "note: Gemini support is experimental: Gemini CLI documents no way to turn its tools off, so hey-shell cannot enforce a text-only answer" ;;
+esac
 
 if is_installed && [ -z "$key" ] && [ "$agent_changed" = 0 ] && [ "$alias_flags" = 0 ] && [ "$no_alias" = 0 ]; then
   echo "already installed in $rc (re-run with --key, --agent, --aliases or --alias* to change them, or --uninstall)"
@@ -185,8 +219,8 @@ for k in $ALIAS_KEYS; do
   fi
 done
 
-is_installed && remove_block
-
+new_rc="$(mktemp)"
+if is_installed; then outside_block > "$new_rc"; elif [ -f "$rc" ]; then cat "$rc" > "$new_rc"; fi
 {
   echo ""
   echo "$begin"
@@ -205,7 +239,8 @@ is_installed && remove_block
   done
   echo "source \"$root/shell/hey-shell.$target\""
   echo "$end"
-} >> "$rc"
+} >> "$new_rc"
+write_rc "$new_rc"
 
 names=""
 for k in $ALIAS_KEYS; do name="$(get_alias "$k")"; [ -z "$name" ] || names="${names:+$names, }$name"; done

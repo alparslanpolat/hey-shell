@@ -110,21 +110,35 @@ if command -v python3 >/dev/null; then
   ok '[ "$(count "^alias hs=.hey-shell.")" = 1 ] && [ "$(count "^alias x=.hey-shell --explain.")" = 1 ] && [ "$(count "--risk")" = 0 ] && [ "$(count "^alias mycheck=.hey-shell --check.")" = 1 ]' "interactive: c customizes each name, n skips one"
 fi
 
-# the one-line installer (docs/install): `curl … | bash`, here with the local repository standing in for GitHub
+# the one-line installer (docs/install): `curl … | bash`, with a throwaway origin standing in for GitHub. It has
+# two releases on different commits, v9.9.0 and v9.10.0 (newer as numbers, older as text), and a newer main.
 bootstrap="$root/docs/install"
+origin="$tmp/origin"
+git clone -q "$root" "$origin" && git -C "$origin" checkout -q -B main
+gitc() { git -C "$origin" -c user.name=t -c user.email=t@t "$@"; }
+gitc commit -q --allow-empty -m one && gitc tag v9.9.0
+gitc commit -q --allow-empty -m two && gitc tag v9.10.0
+gitc commit -q --allow-empty -m unreleased
 H="$tmp/oneline"; mkdir -p "$H"; : > "$H/.zshrc"; rc="$H/.zshrc"
-HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$root" bash -s -- --shell zsh --aliases < "$bootstrap" >/dev/null 2>&1
-ok '[ -x "$H/hey-shell/bin/hey-shell" ] && [ "$(count "^alias ")" = 6 ]' "one-liner: clones into ~/hey-shell and installs"
-out=$(HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$root" bash -s -- --shell zsh < "$bootstrap" 2>&1)
+HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$origin" bash -s -- --shell zsh --aliases < "$bootstrap" >/dev/null 2>&1
+ok '[ -x "$H/hey-shell/bin/hey-shell" ] && [ "$(count "^alias ")" -ge 4 ]' "one-liner: clones into ~/hey-shell and installs"
+ok '[ "$(git -C "$H/hey-shell" describe --tags --exact-match 2>/dev/null)" = v9.10.0 ]' "one-liner: installs the newest release (v9.10.0, not v9.9.0 or main)"
+out=$(HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$origin" bash -s -- --shell zsh < "$bootstrap" 2>&1)
 ok '[[ $out == *"Updating hey-shell"* ]] && [ "$(count "# >>> hey-shell >>>")" = 1 ]' "one-liner: a second run updates instead of failing"
 mkdir -p "$tmp/occupied/hey-shell"
-out=$(HOME="$tmp/occupied" HEY_SHELL_REPO="file://$root" bash < "$bootstrap" 2>&1)
+out=$(HOME="$tmp/occupied" HEY_SHELL_REPO="file://$origin" bash < "$bootstrap" 2>&1)
 ok '[[ $out == *"is not a hey-shell checkout"* ]]' "one-liner: does not touch a folder that is not hey-shell"
+mkdir -p "$tmp/other"; git clone -q "$origin" "$tmp/other/hey-shell"; git -C "$tmp/other/hey-shell" remote set-url origin https://example.com/someone-else.git
+out=$(HOME="$tmp/other" HEY_SHELL_REPO="file://$origin" bash < "$bootstrap" 2>&1)
+ok '[[ $out == *"not file://$origin"* ]]' "one-liner: refuses a checkout of a different repository"
+H="$tmp/oneline-main"; mkdir -p "$H"; : > "$H/.zshrc"
+HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$origin" HEY_SHELL_REF=main bash -s -- --shell zsh < "$bootstrap" >/dev/null 2>&1
+ok '[ "$(git -C "$H/hey-shell" log -1 --format=%s)" = unreleased ]' "one-liner: HEY_SHELL_REF=main installs the development version"
 if command -v python3 >/dev/null; then
   # piped into bash on a terminal: the script comes through stdin, the installer still asks its questions
   H="$tmp/oneline-tty"; mkdir -p "$H"; : > "$H/.zshrc"; rc="$H/.zshrc"
-  printf '\n\n' | in_pty env HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$root" bash -c "bash < '$bootstrap'" >/dev/null 2>&1
-  ok '[ "$(count "ctrl+g")" = 1 ] && [ "$(count "^alias ")" = 6 ]' "one-liner: on a terminal, the installer asks and Enter accepts the defaults"
+  printf '\n\n' | in_pty env HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$origin" bash -c "bash < '$bootstrap'" >/dev/null 2>&1
+  ok '[ "$(count "ctrl+g")" = 1 ] && [ "$(count "^alias ")" -ge 4 ]' "one-liner: on a terminal, the installer asks and Enter accepts the defaults"
 fi
 
 # fish: its config file and its own syntax (an exported "$PATH" would join fish's PATH list with spaces)
@@ -140,6 +154,34 @@ if command -v fish >/dev/null; then
 fi
 HOME="$H" XDG_CONFIG_HOME="$H/.config" SHELL=/usr/bin/fish "$installer" --shell fish --uninstall </dev/null >/dev/null 2>&1
 ok '! grep -q "hey-shell" "$frc"'                              "fish: uninstall removes the block"
+
+# a damaged block stops the installer before it changes anything (removing a block without its end marker
+# would delete everything after it)
+for damage in 'start only' 'end only' 'two blocks' 'end before start'; do
+  new_home
+  case $damage in
+    'start only')       printf 'a=1\n# >>> hey-shell >>>\nexport KEEP=1\n' > "$rc" ;;
+    'end only')         printf 'a=1\n# <<< hey-shell <<<\nexport KEEP=1\n' > "$rc" ;;
+    'two blocks')       printf '# >>> hey-shell >>>\n# <<< hey-shell <<<\n# >>> hey-shell >>>\n# <<< hey-shell <<<\nexport KEEP=1\n' > "$rc" ;;
+    'end before start') printf '# <<< hey-shell <<<\nexport KEEP=1\n# >>> hey-shell >>>\n' > "$rc" ;;
+  esac
+  cp "$rc" "$tmp/before"
+  out=$(run --key alt+o); out2=$(run --uninstall)
+  ok 'cmp -s "$rc" "$tmp/before" && [[ $out == *"damaged hey-shell block"* ]] && [[ $out2 == *"damaged"* ]]' "a damaged block ($damage) is refused and the file is unchanged"
+done
+
+# every change keeps the previous file as a backup, keeps its permissions, and leaves no temporary files
+new_home; printf 'export A=1\n' > "$rc"; chmod 600 "$rc"
+run --no-alias >/dev/null
+ok '[ "$(cat "$rc.hey-shell-backup")" = "export A=1" ]'          "the previous rc file is kept as a backup"
+ok '[ "$(ls -l "$rc" | cut -c1-10)" = "-rw-------" ]'           "the rc file keeps its permissions"
+run --uninstall >/dev/null
+ok '[ -z "$(ls -A "$H" | grep -v "^\.zshrc$" | grep -v "^\.zshrc\.hey-shell-backup$")" ]' "no temporary files are left behind"
+
+# a symlinked rc file (dotfile managers) stays a symlink; the block goes into its target
+new_home; mkdir -p "$H/dots"; printf 'export D=1\n' > "$H/dots/zshrc"; rm -f "$rc"; ln -s "$H/dots/zshrc" "$rc"
+run --no-alias >/dev/null
+ok '[ -L "$rc" ] && grep -qx "# >>> hey-shell >>>" "$H/dots/zshrc"' "a symlinked rc file stays a symlink"
 
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]

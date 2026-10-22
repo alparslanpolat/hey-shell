@@ -48,7 +48,7 @@ HEY_SHELL_AGENT=codex ./test/eval/run.sh  # or another agent
 ./test/eval/run.sh net- git-              # only some ids
 ```
 
-It reports how many came back valid, parse, match the pattern, avoid GNU-only flags on macOS, stay within their risk ceiling, and pass the failure check, then lists every miss. Results are kept in `test/eval/results/<date>-<model>.tsv`; commit the run you compare against. Run it when you change the prompt in `bin/hey-shell` or the default model, and before a release. The "no issues" column depends on the machine too (docker not running, npm not installed), so compare it on the same machine. Add a request when you find one the model gets wrong.
+It reports how many came back valid, parse, match the pattern, avoid GNU-only flags on macOS, stay within their risk ceiling by hey-shell's own check (`own_risk_ok`), are safe by an independent rule and the request's forbidden pattern (`safe`), and pass the failure check, then `false_low`: destructive answers hey-shell rated low, the classifier's blind spots. It lists every miss. Results are kept in `test/eval/results/<date>-<model>.tsv`; commit the run you compare against. Run it when you change the prompt in `bin/hey-shell` or the default model, and before a release. The "no issues" column depends on the machine too (docker not running, npm not installed), so compare it on the same machine. Add a request when you find one the model gets wrong.
 
 ## Style
 

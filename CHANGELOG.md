@@ -4,6 +4,16 @@ The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints 
 
 ## Unreleased
 
+Safety and trust fixes from an external audit:
+
+- Agents: Codex now runs with `--sandbox read-only --ignore-user-config`, so your Codex config cannot loosen the read-only sandbox. Gemini is marked experimental: its CLI documents no way to turn its tools off. The README states what is enforced for each agent.
+- Risk: `curl … | /bin/bash`, `| /usr/bin/env bash`, `| sudo -E bash`, `| python3` and other interpreters behind a path, `env` or `sudo` options are rated high (they were low or medium). `git reset` without `--hard` is medium. A low rating now reads `Risk: none recognized`: no known risky pattern matched, which is not the same as safe.
+- Installer: it refuses to touch an rc file whose hey-shell block is damaged (a missing end marker used to delete everything after the start marker), keeps the previous file as `<rc>.hey-shell-backup`, writes the new one atomically, and keeps symlinked rc files and file permissions.
+- Privacy: history is off by default (`HEY_SHELL_HISTORY=1` turns it on); when on, the file is private to you, keeps the last 500 answers, and `hey-shell --history --clear` deletes it. The current folder is sent relative to your home, without your user name.
+- The one-line installer installs the newest release tag instead of the development branch and refuses a `~/hey-shell` that is a checkout of another repository; `hey-shell --update` moves a release install to the newest release.
+- A timed-out agent's child processes are stopped too.
+- Evaluation: safety is now judged by a rule independent of hey-shell's own risk check, plus per-request forbidden patterns, and a `false_low` metric counts destructive answers the risk check rated low. Requests run inside a fresh git repository.
+
 - fish support: Ctrl+G, `hse`, refine, `hsf` and the aliases work in fish (`shell/hey-shell.fish`). The installer writes fish syntax to `~/.config/fish/config.fish`, generated commands are fish commands, and the failure check parses with `fish --no-execute` and knows fish builtins. Tested in real fish sessions and in CI on Linux and macOS.
 
 ## 0.6.0

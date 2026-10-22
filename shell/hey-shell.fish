@@ -45,15 +45,28 @@ function _hey_shell_fill
     commandline -f repaint
 end
 
-# Put a command on the next prompt: fish has no `print -z`, so fill the line once the next prompt is drawn.
+# Put a command on the next prompt. fish has no `print -z`: fish 4 lets a fish_prompt handler fill the line,
+# but fish 3 clears it again after that event, so there hey-shell asks the terminal for its status (ESC[5n)
+# and fills the line when the reply (ESC[0n) arrives as input, as the bash integration does.
 function _hey_shell_prefill
     test -n "$argv[1]"; or return 0
     set -g _hey_shell_next $argv[1]
-    function _hey_shell_prefill_once --on-event fish_prompt
-        commandline -r -- $_hey_shell_next
-        functions -e _hey_shell_prefill_once
-        set -e _hey_shell_next
+    if string match -qr '^[0-3]\.' -- $version
+        bind \e'[0n' _hey_shell_prefill_now
+        printf '\e[5n'
+    else
+        function _hey_shell_prefill_once --on-event fish_prompt
+            functions -e _hey_shell_prefill_once
+            _hey_shell_prefill_now
+        end
     end
+end
+
+function _hey_shell_prefill_now
+    bind -e \e'[0n'
+    set -q _hey_shell_next; or return
+    commandline -r -- $_hey_shell_next
+    set -e _hey_shell_next
 end
 
 # `hey-shell -e ...` explains, then leaves the command on the next prompt, ready to edit or run.

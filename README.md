@@ -17,7 +17,7 @@ SUGGESTED COMMAND · REVIEW BEFORE RUNNING
 ╭────────────────────────────────────────────────────────────────────────────╮
 │ $ docker ps -q                                                             │
 ╰────────────────────────────────────────────────────────────────────────────╯
-Risk: LOW · Check: No known issues
+Risk: none recognized · Check: No known issues
 ```
 
 Not sure what a command does? Ask with `hse` and it explains it too, then leaves the command on your next prompt:
@@ -30,10 +30,13 @@ SUGGESTED COMMAND · REVIEW BEFORE RUNNING
 │ $ git reset --soft HEAD~1                                                  │
 ╰────────────────────────────────────────────────────────────────────────────╯
 
-Moves the branch back one commit and keeps all of that commit's changes
-staged, so you can recommit them.
+Moves HEAD back one commit and keeps all of that commit's changes staged, so
+nothing needs replacing.
+Warning: If the commit was already pushed, you will need a force push to
+update the remote.
 
-Risk: LOW · Check: No known issues
+Risk: MEDIUM · Check: No known issues
+  risk: changes git history or a remote
 ```
 
 Works in bash, zsh and fish on Linux, WSL2 and macOS. The commands come from the AI agent CLI you already use and are logged in to: [Claude Code](https://claude.com/claude-code) by default, or the [Codex CLI](https://github.com/openai/codex) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) (see [Choose your agent](#choose-your-agent)).
@@ -67,7 +70,7 @@ The whole idea fits in one line: **type a request, press Ctrl+G, read the comman
 curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash
 ```
 
-Then open a new terminal. That is all: it downloads hey-shell into `~/hey-shell` (or updates it if it is already there) and runs the installer, which asks two questions. To answer them up front, add the installer's flags: `curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash -s -- --key alt+o --aliases --agent codex`.
+Then open a new terminal. That is all: it downloads the newest release of hey-shell (its latest `vX.Y.Z` tag, not the development branch) into `~/hey-shell`, or moves an existing install to it, and runs the installer, which asks two questions. To answer them up front, add the installer's flags: `curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash -s -- --key alt+o --aliases --agent codex`.
 
 `curl … | bash` runs a script from the internet, which is exactly what hey-shell's own risk check rates HIGH. If you would rather read it first, [the script](docs/install) is about 40 lines, or install by hand:
 
@@ -106,13 +109,15 @@ hey-shell asks Claude Code by default. To use the Codex CLI or the Gemini CLI in
 
 This writes `export HEY_SHELL_AGENT=codex` into the hey-shell block of your rc file; you can also set it yourself. Everything else works the same with every agent: the key, `hse`, refine, `hsf`, the risk rating and the failure check. Only the text of the answer comes from the agent.
 
-| Agent | Called as | Model |
-| --- | --- | --- |
-| `claude` (default) | `claude -p`, with no tools, no MCP servers and no saved session | `haiku`, or `HEY_SHELL_MODEL` |
-| `codex` | `codex exec`, read-only sandbox, `--ephemeral` (no saved session) | the CLI's default, or `HEY_SHELL_MODEL` |
-| `gemini` | `gemini -p … -o text` | the CLI's default, or `HEY_SHELL_MODEL` |
+hey-shell never runs the command it gets back. But these are agents, not plain text generators: while preparing an answer, an agent CLI can use its own tools. hey-shell restricts each one as far as its documented flags allow, and is explicit about what that does and does not guarantee:
 
-The test suite checks the exact command line each agent gets; the commands' quality has been measured with Claude Haiku (see CONTRIBUTING), not yet with the others.
+| Agent | Called as | What hey-shell enforces while it answers | Model |
+| --- | --- | --- | --- |
+| `claude` (default) | `claude -p --tools "" --strict-mcp-config --no-session-persistence` | **No tools at all**, no MCP servers, no saved session: text only | `haiku`, or `HEY_SHELL_MODEL` |
+| `codex` | `codex exec --sandbox read-only --ignore-user-config --ephemeral` | **No writes**: a read-only sandbox, and your `config.toml` is ignored so it cannot loosen that. It **may read files** in the folder while answering | the CLI's default, or `HEY_SHELL_MODEL` |
+| `gemini` (experimental) | `gemini -p … -o text` | **Nothing**: Gemini CLI documents no way to turn its tools off, so this relies on its own defaults for non-interactive runs | the CLI's default, or `HEY_SHELL_MODEL` |
+
+Use `codex` or `gemini` only if those limits are acceptable to you. The test suite checks the exact command line each agent gets, not what a real installed CLI does with it; the commands' quality has been measured with Claude Haiku (see CONTRIBUTING), not yet with the others.
 
 ## Update
 
@@ -167,13 +172,13 @@ $ grep -rn TODO . # only shell files, skip tests     <Ctrl+G>
 $ rg -n --glob '*.sh' --glob '!*test*' TODO .
 ```
 
-**Fix the last command.** Run `hsf` (`hey-shell --fix`) right after a command fails. It takes the command and its exit status from your shell history, asks for a corrected version, explains what was wrong, and leaves the fix on your next prompt like `hse` does. Nothing is re-run. You can also pass a command: `hey-shell --fix "gti status"`.
+**Fix the last command.** Run `hsf` (`hey-shell --fix`) right after a command fails. It takes the command and its exit status from your shell history, asks for a corrected version, explains what was wrong, and leaves the fix on your next prompt like `hse` does. Nothing is re-run, so it does not see the command's error message: it works from the command and its exit status alone, which is enough for typos and wrong flags but not for errors that depend on your files or services. You can also pass a command: `hey-shell --fix "gti status"`.
 
 **Explain a command.** `hsw "<command>"` (`hey-shell -w`, `--what`) explains a command you found or were given, with its risk and failure check, before you decide to run it.
 
 Explanations come in the language of your request; `--what` and `--fix` use your locale (`LANG`), so a `tr_TR` system gets Turkish.
 
-**History.** Every request and the command it produced is logged on your machine in `~/.local/state/hey-shell/history.tsv`. `hey-shell --history` shows the last 20, and `hey-shell --history docker` filters them. Set `HEY_SHELL_HISTORY=0` to turn it off.
+**History (off by default).** Requests can contain hostnames, paths or secrets, so nothing is kept unless you set `HEY_SHELL_HISTORY=1`. Then each request and the command it produced is logged in `~/.local/state/hey-shell/history.tsv`, readable by you alone and limited to the last 500. `hey-shell --history` shows the last 20, `hey-shell --history docker` filters them, and `hey-shell --history --clear` deletes the file.
 
 ## Fits your setup
 
@@ -194,7 +199,7 @@ SUGGESTED COMMAND · REVIEW BEFORE RUNNING
 
 Splits the current tmux window into a 2x2 grid of four panes.
 
-Risk: LOW · Check: LIKELY FAIL
+Risk: none recognized · Check: LIKELY FAIL
   check: no tmux server is running; start tmux first
 ```
 
@@ -215,7 +220,7 @@ It is a prediction, not a guarantee. It cannot know whether a file exists, wheth
 | `HEY_SHELL_TIMEOUT` | `30` | seconds to wait for the agent before giving up |
 | `HEY_SHELL_UPDATE_CHECK` | on | `0` = no "Update available" line |
 | `HEY_SHELL_CONTEXT` | on | `0` = do not tell the agent about installed tools and the project |
-| `HEY_SHELL_HISTORY` | on | `0` = do not log requests to `~/.local/state/hey-shell/history.tsv` |
+| `HEY_SHELL_HISTORY` | off | `1` = keep your requests and commands in `~/.local/state/hey-shell/history.tsv` (private to you, last 500) |
 | `HEY_SHELL_CHECK` | on | `0` turns off the failure prediction after `hse` and on the key binding |
 | `HEY_SHELL_COLOR` | `auto` | `always` or `never` overrides the terminal detection; `NO_COLOR` always wins |
 | `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
@@ -231,9 +236,11 @@ Commands are only placed on the prompt, never executed. Each generated command i
 | --- | --- | --- |
 | high | `Risk: HIGH` in red, with the reason | `curl … \| bash`, `eval "$(curl …)"`, `base64 -d \| sh`, `rm -rf`, `find … -delete`, `rsync --delete`, `git push --force`, `git reset --hard`, `docker volume rm`, `kubectl delete`, `terraform destroy`, `aws s3 rm --recursive`, SQL `DELETE`/`UPDATE` without `WHERE`, `dd`, `mkfs` |
 | medium | `Risk: MEDIUM` in amber, with the reason | `sudo`, `rm`, `mv`, `kill`, `sed -i`, `> file`, `git push`, `npm publish`, `brew install`, `pip install`, `docker compose down`, `kubectl apply`, `systemctl restart`, `chown -R`, writes to `/etc` |
-| low | `Risk: LOW` | everything else |
+| low | `Risk: none recognized` | everything else: no known risky pattern matched, which is not the same as safe |
 
 The failure check works the same way: `Check: No known issues` means none of its checks found a problem (syntax, missing programs, no git repository, no tmux server, no docker daemon). It does not mean the command was tested or will succeed.
+
+`Risk: none recognized` means exactly that: no known risky pattern matched. It is not a statement that the command is safe, and the risk rating is a prompt to read, not a security gate.
 
 **What the checks cannot detect.** Both are pattern matching on the command's text, not a guarantee:
 
@@ -249,9 +256,9 @@ Every reply is also validated before it reaches your prompt: terminal control ch
 
 ## Privacy
 
-Each request goes to your chosen agent through its own CLI, under your account with that provider: Anthropic for Claude Code, OpenAI for Codex, Google for Gemini. hey-shell sends the text of your request, your OS, your shell name and the path of your current directory, plus the names described in [Fits your setup](#fits-your-setup) (installed tools, project type, script and target names, git branch; turn off with `HEY_SHELL_CONTEXT=0`). `hey-shell --fix` also sends the command being fixed and its exit status. It does not send file contents, environment variables or the rest of your shell history. The agent CLI may add context of its own, such as its settings or memory files, which is why answers sometimes mention tools you use.
+Each request goes to your chosen agent through its own CLI, under your account with that provider: Anthropic for Claude Code, OpenAI for Codex, Google for Gemini. hey-shell sends the text of your request, your OS, your shell name and your current folder relative to your home (`~/projects/app`, so not your user name or home path), plus the names described in [Fits your setup](#fits-your-setup) (installed tools, project type, script and target names, git branch; turn off with `HEY_SHELL_CONTEXT=0`). `hey-shell --fix` also sends the command being fixed and its exit status. It does not send file contents, environment variables or the rest of your shell history. The agent CLI may add context of its own, such as its settings or memory files, which is why answers sometimes mention tools you use.
 
-The risk rating and the failure check run locally and send nothing. Your request history stays in `~/.local/state/hey-shell/history.tsv` on your machine.
+The risk rating and the failure check run locally and send nothing. History is off unless you turn it on (`HEY_SHELL_HISTORY=1`), and then stays on your machine, readable by you alone.
 
 ## Troubleshooting
 

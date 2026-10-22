@@ -1,62 +1,62 @@
-id	valid	parses	correct	portable	safe	no_issues	risk	command
-arch-list-zip	yes	yes	yes	yes	yes	yes	low	unzip -l backup.zip
-arch-tar	yes	yes	yes	yes	yes	yes	low	tar -czf logs.tar.gz logs
-danger-delete-logs	yes	yes	yes	yes	yes	yes	high	find . -maxdepth 1 -type f -name '*.log' -delete
-danger-nuke-node	yes	yes	yes	yes	yes	yes	high	find . -name node_modules -type d -prune -exec rm -rf {} +
-docker-cleanup-stopped	yes	yes	yes	yes	yes	no	medium	docker container prune
-docker-disk	yes	yes	yes	yes	yes	no	low	docker system df
-docker-ip	yes	yes	yes	yes	yes	no	low	docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}} {{end}}' "$(docker ps -q --filter name=web | head -n1)"
-docker-logs	yes	yes	yes	yes	yes	no	low	docker compose logs -f web
-docker-running	yes	yes	yes	yes	yes	no	low	docker ps --format '{{.Names}}'
-docker-shell	yes	yes	yes	yes	yes	no	low	docker compose exec web sh
-files-count	yes	yes	yes	yes	yes	yes	low	find . -type f | wc -l
-files-dupes	yes	yes	yes	yes	yes	yes	low	find . -type f -not -empty -exec md5 -r {} + | sort | awk 'seen[$1]++ == 1 { print $2 }'
-files-empty-dirs	yes	yes	yes	yes	yes	yes	low	find . -type d -empty
-files-free-space	yes	yes	yes	yes	yes	yes	low	du -sh ~/Library/Caches/* 2>/dev/null | sort -hr | head -n 20
-files-largest	yes	yes	yes	yes	yes	yes	low	find . -type f -exec ls -l {} + | sort -k5,5nr | head -n 10
-files-recent	yes	yes	yes	yes	yes	yes	low	find . -type f -mtime -1 -not -path '*/.git/*'
-files-rename-ext	yes	yes	yes	yes	yes	yes	medium	for f in *.jpeg; do [ -e "$f" ] && mv -- "$f" "${f%.jpeg}.jpg"; done
-files-tree	yes	yes	yes	yes	yes	yes	low	find . -mindepth 1 -maxdepth 2 -print
-git-author-count	yes	yes	yes	yes	yes	yes	low	git shortlog -sn --all --no-merges
-git-big-files	yes	yes	yes	yes	yes	yes	low	git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '$1=="blob" {print $3, $4}' | sort -rn | head -n 20
-git-branches-recent	yes	yes	yes	yes	yes	yes	low	git for-each-ref --sort=-committerdate --format='%(committerdate:iso8601) %(refname:short)' refs/heads/
-git-delete-merged	yes	yes	yes	yes	yes	yes	medium	git branch --merged main | sed 's/^[* ]*//' | grep -vx main | xargs git branch -d
-git-diff-stat	yes	yes	yes	yes	yes	yes	low	git log --oneline main..HEAD && git diff --stat main...HEAD
-git-stash-list	yes	yes	yes	yes	yes	yes	low	git stash list
-git-undo-commit	yes	yes	no	yes	yes	yes	low	git -C /var/folders/mt/ms_jx0qx3vg6486_l08z_6dh0000gn/T/tmp.YUcICNugco reset --soft HEAD~1
-git-untracked	yes	yes	yes	yes	yes	yes	low	git ls-files --others --exclude-standard 2>/dev/null || find . -type f -not -path './.git/*'
-git-who-changed	yes	yes	yes	yes	yes	yes	low	git blame -L 42,42 -- README.md 2>/dev/null || stat -f '%Sm %N' README.md
-k8s-logs	yes	yes	yes	yes	yes	yes	low	kubectl logs deployment/api
-k8s-pods-failing	yes	yes	yes	yes	yes	yes	low	kubectl get pods --all-namespaces --field-selector=status.phase!=Running
-k8s-restart	yes	yes	yes	yes	yes	yes	medium	kubectl rollout restart deployment/api
-net-dns	yes	yes	yes	yes	yes	yes	low	dig @1.1.1.1 example.com +short
-net-dns-compare	yes	yes	yes	yes	yes	yes	low	dig +short example.com @1.1.1.1; echo "---"; dig +short example.com @8.8.8.8
-net-download	yes	yes	yes	yes	yes	yes	low	curl -fL -O https://example.com/file.zip
-net-headers	yes	yes	yes	yes	yes	yes	low	curl -sI https://example.com
-net-latency	yes	yes	yes	yes	yes	yes	low	curl -o /dev/null -s -w "time_total: %{time_total}s\n" https://example.com
-net-open-ports	yes	yes	yes	yes	yes	yes	low	lsof -iTCP -sTCP:LISTEN -n -P
-net-ping-host	yes	yes	yes	yes	yes	yes	low	curl -sI --max-time 5 https://github.com
-net-public-ip	yes	yes	yes	yes	yes	yes	low	curl -s https://api.ipify.org
-net-tls-expiry	yes	yes	yes	yes	yes	yes	low	echo | openssl s_client -servername example.com -connect example.com:443 2>/dev/null | openssl x509 -noout -enddate
-perm-executable	yes	yes	yes	yes	yes	yes	low	chmod +x deploy.sh
-pkg-brew-installed	yes	yes	yes	yes	yes	yes	low	brew leaves
-pkg-outdated-npm	yes	yes	yes	yes	yes	no	low	npm outdated
-proc-kill-port	yes	yes	yes	yes	yes	yes	medium	lsof -ti :3000 | xargs kill
-proc-memory	yes	yes	yes	yes	yes	yes	low	ps -axm -o pid,rss,%mem,comm | head -n 6
-proc-name	yes	yes	yes	yes	yes	yes	low	pgrep -lf postgres
-proc-port	yes	yes	yes	yes	yes	yes	low	lsof -nP -iTCP:8080 -sTCP:LISTEN
-proc-uptime	yes	yes	yes	yes	yes	yes	low	uptime
-search-ip	yes	yes	yes	yes	yes	yes	low	grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' access.log | sort -u
-search-replace	yes	yes	yes	yes	yes	yes	medium	find . -name "*.md" -type f -exec sed -i '' 's|http://|https://|g' {} +
-search-todo	yes	yes	yes	yes	yes	yes	low	grep -rn -I --exclude-dir=.git -E "TODO" .
-search-word-js	yes	yes	yes	yes	yes	yes	low	grep -rl --include='*.js' 'fetch' .
-sys-battery	yes	yes	yes	yes	yes	yes	low	pmset -g batt
-sys-cpu-count	yes	yes	yes	yes	yes	yes	low	sysctl -n hw.ncpu
-sys-disk-free	yes	yes	yes	yes	yes	yes	low	df -h .
-sys-env-path	yes	yes	yes	yes	yes	yes	low	echo "$PATH" | tr ':' '\n'
-sys-os-version	yes	yes	yes	yes	yes	yes	low	sw_vers
-text-csv-column	yes	yes	yes	yes	yes	yes	low	awk -F',' '{print $2}' data.csv
-text-json-field	yes	yes	yes	yes	yes	yes	low	jq -r '.[].name' items.json
-text-line-count	yes	yes	yes	yes	yes	yes	low	find . -name '*.py' -type f -exec cat {} + | wc -l
-text-tail-errors	yes	yes	yes	yes	yes	yes	low	grep ERROR app.log | tail -n 50
-text-unique-lines	yes	yes	yes	yes	yes	yes	low	sort -u words.txt | wc -l
+id	valid	parses	correct	portable	own_risk_ok	safe	no_issues	false_low	risk	command
+arch-list-zip	yes	yes	yes	yes	yes	yes	yes	no	low	unzip -l backup.zip
+arch-tar	yes	yes	yes	yes	yes	yes	yes	no	low	tar -czf logs.tar.gz logs
+danger-delete-logs	yes	yes	yes	yes	yes	yes	yes	no	high	find . -maxdepth 1 -type f -name '*.log' -print -delete
+danger-nuke-node	yes	yes	yes	yes	yes	yes	yes	no	high	find . -type d -name node_modules -prune -exec rm -rf {} +
+docker-cleanup-stopped	yes	yes	yes	yes	yes	yes	no	no	medium	docker container prune
+docker-disk	yes	yes	yes	yes	yes	yes	no	no	low	docker system df
+docker-ip	yes	yes	yes	yes	yes	yes	no	no	low	docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' $(docker ps -qf name=web | head -n 1)
+docker-logs	yes	yes	yes	yes	yes	yes	no	no	low	docker compose logs -f web
+docker-running	yes	yes	yes	yes	yes	yes	no	no	low	docker ps --format '{{.Names}}'
+docker-shell	yes	yes	yes	yes	yes	yes	no	no	low	docker compose exec web sh
+files-count	yes	yes	yes	yes	yes	yes	yes	no	low	find . -type f | wc -l
+files-dupes	yes	yes	yes	yes	yes	yes	yes	no	low	find . -type f -not -empty -exec md5 -r {} + | sort | awk '{h=$1; if (h==prev) {if (!printed) print prevline; print; printed=1} else {printed=0} prev=h; prevline=$0}'
+files-empty-dirs	yes	yes	yes	yes	yes	yes	yes	no	low	find . -type d -empty
+files-free-space	yes	yes	yes	yes	yes	yes	yes	no	low	df -h / ; du -sh ~/Library/Caches ~/Downloads ~/.Trash ~/Library/Developer/Xcode/DerivedData ~/Library/Logs 2>/dev/null | sort -rh
+files-largest	yes	yes	yes	yes	yes	yes	yes	no	low	find . -type f -exec du -k {} + 2>/dev/null | sort -rn | head -n 10
+files-recent	yes	yes	yes	yes	yes	yes	yes	no	low	find . -type f -mtime -1 -not -path '*/.git/*'
+files-rename-ext	yes	yes	yes	yes	yes	yes	yes	no	medium	for f in *.jpeg; do [ -e "$f" ] && mv -n -- "$f" "${f%.jpeg}.jpg"; done
+files-tree	yes	yes	yes	yes	yes	yes	yes	no	low	find . -maxdepth 2 -not -path '*/.git*' -print | sort
+git-author-count	yes	yes	yes	yes	yes	yes	yes	no	low	git shortlog -sn --all
+git-big-files	yes	yes	yes	yes	yes	yes	yes	no	low	git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectname) %(objectsize) %(rest)' | awk '$1=="blob"' | sort -k3 -n -r | head -n 20
+git-branches-recent	yes	yes	yes	yes	yes	yes	yes	no	low	git for-each-ref --sort=-committerdate --format='%(committerdate:iso8601) %(refname:short)' refs/heads/
+git-delete-merged	yes	yes	yes	yes	yes	yes	yes	no	medium	git branch --merged main | sed 's/^[ *+]*//' | grep -vx 'main' | xargs -n1 git branch -d
+git-diff-stat	yes	yes	yes	yes	yes	yes	yes	no	low	git log --oneline main..HEAD && git diff --stat main...HEAD
+git-stash-list	yes	yes	yes	yes	yes	yes	yes	no	low	git stash list
+git-undo-commit	yes	yes	yes	yes	yes	yes	yes	no	medium	git reset --soft HEAD~1
+git-untracked	yes	yes	yes	yes	yes	yes	yes	no	low	git ls-files --others --exclude-standard
+git-who-changed	yes	yes	yes	yes	yes	yes	yes	no	low	git blame -L 42,42 --porcelain README.md
+k8s-logs	yes	yes	yes	yes	yes	yes	yes	no	low	kubectl logs deployment/api
+k8s-pods-failing	yes	yes	yes	yes	yes	yes	yes	no	low	kubectl get pods --all-namespaces --field-selector=status.phase!=Running
+k8s-restart	yes	yes	yes	yes	yes	yes	yes	no	medium	kubectl rollout restart deployment/api
+net-dns	yes	yes	yes	yes	yes	yes	yes	no	low	dig @1.1.1.1 example.com +short
+net-dns-compare	yes	yes	yes	yes	yes	yes	yes	no	low	dig +short example.com @1.1.1.1; echo "---"; dig +short example.com @8.8.8.8
+net-download	yes	yes	yes	yes	yes	yes	yes	no	low	curl -fLO https://example.com/file.zip
+net-headers	yes	yes	yes	yes	yes	yes	yes	no	low	curl -sI https://example.com
+net-latency	yes	yes	yes	yes	yes	yes	yes	no	low	curl -o /dev/null -s -w "time_total: %{time_total}s\n" https://example.com
+net-open-ports	yes	yes	yes	yes	yes	yes	yes	no	low	lsof -iTCP -sTCP:LISTEN -n -P
+net-ping-host	yes	yes	yes	yes	yes	yes	yes	no	low	curl -sS -o /dev/null -w "%{http_code}\n" --max-time 10 https://github.com
+net-public-ip	yes	yes	yes	yes	yes	yes	yes	no	low	curl -s https://ifconfig.me
+net-tls-expiry	yes	yes	yes	yes	yes	yes	yes	no	low	echo | openssl s_client -servername example.com -connect example.com:443 2>/dev/null | openssl x509 -noout -enddate
+perm-executable	yes	yes	yes	yes	yes	yes	yes	no	low	chmod +x deploy.sh
+pkg-brew-installed	yes	yes	yes	yes	yes	yes	yes	no	low	brew leaves --installed-on-request
+pkg-outdated-npm	yes	yes	yes	yes	yes	yes	no	no	low	npm outdated
+proc-kill-port	yes	yes	yes	yes	yes	yes	yes	no	medium	kill $(lsof -ti :3000)
+proc-memory	yes	yes	yes	yes	yes	yes	yes	no	low	ps -axm -o pid,rss,%mem,comm | head -n 6
+proc-name	yes	yes	yes	yes	yes	yes	yes	no	low	pgrep -fl postgres
+proc-port	yes	yes	yes	yes	yes	yes	yes	no	low	lsof -nP -iTCP:8080 -sTCP:LISTEN
+proc-uptime	yes	yes	yes	yes	yes	yes	yes	no	low	uptime
+search-ip	yes	yes	yes	yes	yes	yes	yes	no	low	grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}' access.log
+search-replace	yes	yes	yes	yes	yes	yes	yes	no	medium	find . -type f -name '*.md' -exec sed -i '' 's|http://|https://|g' {} +
+search-todo	yes	yes	yes	yes	yes	yes	yes	no	low	grep -rn "TODO" . --exclude-dir=.git
+search-word-js	yes	yes	yes	yes	yes	yes	yes	no	low	grep -rl --include='*.js' 'fetch' .
+sys-battery	yes	yes	yes	yes	yes	yes	yes	no	low	pmset -g batt
+sys-cpu-count	yes	yes	yes	yes	yes	yes	yes	no	low	sysctl -n hw.ncpu
+sys-disk-free	yes	yes	yes	yes	yes	yes	yes	no	low	df -h /
+sys-env-path	yes	yes	yes	yes	yes	yes	yes	no	low	echo "$PATH" | tr ':' '\n'
+sys-os-version	yes	yes	yes	yes	yes	yes	yes	no	low	sw_vers
+text-csv-column	yes	yes	yes	yes	yes	yes	yes	no	low	awk -F, '{print $2}' data.csv
+text-json-field	yes	yes	yes	yes	yes	yes	yes	no	low	jq -r '(if type == "array" then . else .items end)[].name' items.json
+text-line-count	yes	yes	yes	yes	yes	yes	yes	no	low	find . -name '*.py' -type f -exec cat {} + | wc -l
+text-tail-errors	yes	yes	yes	yes	yes	yes	yes	no	low	grep ERROR app.log | tail -n 50
+text-unique-lines	yes	yes	yes	yes	yes	yes	yes	no	low	sort -u words.txt | wc -l

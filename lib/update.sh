@@ -2,7 +2,8 @@
 # Version and update notice. Sourced by bin/hey-shell.
 #   hey_shell_version        prints the version from .claude-plugin/plugin.json
 #   hey_shell_update_notice  prints one line when a newer version is published (needs hey_shell_colors to have run)
-#   hey_shell_update         pulls the latest version into this checkout (fast-forward only)
+#   hey_shell_update         moves this checkout to the newest release tag (installs from the one-line installer
+#                            sit on a tag); a checkout on a branch (development) is pulled instead
 # The notice reads a cached answer and refreshes it in the background at most once a day, so it never slows a
 # command down; a new release shows up on the run after the refresh. HEY_SHELL_UPDATE_CHECK=0 turns it off.
 
@@ -42,8 +43,19 @@ hey_shell_update() {
   git -C "$_hs_root" rev-parse --git-dir >/dev/null 2>&1 \
     || { echo "hey-shell: $_hs_root is not a git checkout; reinstall it with git clone (see the README)" >&2; return 1; }
   before="$(hey_shell_version)"
-  git -C "$_hs_root" pull --ff-only --quiet \
-    || { echo "hey-shell: update failed; local changes in $_hs_root may be in the way (git -C $_hs_root status)" >&2; return 1; }
+  if git -C "$_hs_root" symbolic-ref -q HEAD >/dev/null; then # on a branch: a development checkout
+    git -C "$_hs_root" pull --ff-only --quiet \
+      || { echo "hey-shell: update failed; local changes in $_hs_root may be in the way (git -C $_hs_root status)" >&2; return 1; }
+  else # on a release tag: move to the newest one
+    local ref
+    ref="$(git -C "$_hs_root" ls-remote --tags --refs origin 'v*' | sed 's|.*refs/tags/||' \
+      | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1.2,1n -k2,2n -k3,3n | tail -1)"
+    [ -n "$ref" ] || { echo "hey-shell: could not find a release to update to" >&2; return 1; }
+    { git -C "$_hs_root" fetch --quiet --depth 1 origin "refs/tags/$ref:refs/tags/$ref" 2>/dev/null \
+        || git -C "$_hs_root" fetch --quiet origin "refs/tags/$ref:refs/tags/$ref"; } \
+      && git -C "$_hs_root" -c advice.detachedHead=false checkout --quiet "$ref" \
+      || { echo "hey-shell: update to $ref failed; local changes in $_hs_root may be in the way (git -C $_hs_root status)" >&2; return 1; }
+  fi
   after="$(hey_shell_version)"
   rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/hey-shell/latest-version"
   if [ "$before" = "$after" ]; then

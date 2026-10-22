@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034  # the results are globals read by bin/hey-shell
 # Terminal output for bin/hey-shell: color by purpose, wrapping, and the status line. Sourced by bin/hey-shell.
 #   hey_shell_colors          sets C_CMD C_MUTED C_AMBER C_RED C_GREEN C_BRAND C_WORD C_OFF (empty when color is off)
-#   hey_shell_status          prints "Risk: MEDIUM · Check: No known issues" plus the reasons; run hey_shell_risk (and
+#   hey_shell_status          prints "Risk: MEDIUM · Check: No known issues" (or "Risk: none recognized") plus the reasons; run hey_shell_risk (and
 #                             hey_shell_check unless HEY_SHELL_CHECK=0) first
 #   hey_shell_render_explain  prints the command in a labeled box, the wrapped explanation, a separate warning
 # Color is on when stdout is a terminal, or when HEY_SHELL_COLOR=always (the shell integration sets it because
@@ -33,7 +33,10 @@ hey_shell_colors() {
 hey_shell_status() {
   local rcol="$C_MUTED" ccol word
   case $HEY_SHELL_RISK_LEVEL in medium) rcol=$C_AMBER ;; high) rcol=$C_RED ;; esac
-  printf '%sRisk:%s %s%s%s' "$C_MUTED" "$C_OFF" "$rcol" "$(printf '%s' "$HEY_SHELL_RISK_LEVEL" | tr '[:lower:]' '[:upper:]')" "$C_OFF"
+  # "low" only means no known risky pattern matched, so it is not shown as a verdict
+  word="$(printf '%s' "$HEY_SHELL_RISK_LEVEL" | tr '[:lower:]' '[:upper:]')"
+  [ "$HEY_SHELL_RISK_LEVEL" != low ] || word="none recognized"
+  printf '%sRisk:%s %s%s%s' "$C_MUTED" "$C_OFF" "$rcol" "$word" "$C_OFF"
   if [ "${HEY_SHELL_CHECK:-1}" != 0 ]; then
     ccol=$C_GREEN word="No known issues"
     [ "$HEY_SHELL_CHECK_LEVEL" = ok ] || { ccol=$C_RED; word="LIKELY FAIL"; }

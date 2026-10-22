@@ -16,13 +16,17 @@ _hs_rule() { # level regex reason; the first matching high rule wins, medium nev
   fi
 }
 
+# After a pipe: the program that reads the piped text as code. Any path (/bin/bash), `env`, and `sudo` with its
+# options in front, then a shell or a script interpreter reading its program from stdin.
+_hs_into='\|[[:space:]]*(sudo([[:space:]]+-[[:alnum:]-]+)*[[:space:]]+)?([^[:space:]|;&]*/)?(env([[:space:]]+-[[:alnum:]-]+)*[[:space:]]+)?([^[:space:]|;&]*/)?((ba|z|da|k|fi)?sh|python[0-9.]*|perl|ruby|node|php)([[:space:]]+-[[:alnum:]-]*)*([[:space:];|&)]|$)'
+
 hey_shell_risk() {
   _hs_cmd=$1
   HEY_SHELL_RISK_LEVEL=low
   HEY_SHELL_RISK_REASON=""
 
   # high: destructive, irreversible, or runs code fetched from the network
-  _hs_rule high '(curl|wget)[^|;&]*\|[[:space:]]*(sudo[[:space:]]+)?(ba|z|da|k)?sh([[:space:]]|$)' 'downloads and runs a script'
+  _hs_rule high "(curl|wget|fetch|http|aria2c)[^|;&]*$_hs_into" 'downloads and runs a script'
   _hs_rule high '(ba|z|da)?sh[[:space:]]+(-c[[:space:]]+)?["'"'"']?(<\(|\$\()[[:space:]]*(curl|wget)' 'downloads and runs a script'
   _hs_rule high '(^|[^[:alnum:]_])rm[[:space:]]+(-[[:alnum:]]*[rf]|--(recursive|force))' 'force or recursive delete'
   _hs_rule high 'find[[:space:]].*(-delete|-exec[[:space:]]+rm)' 'find that deletes files'
@@ -61,11 +65,11 @@ hey_shell_risk() {
   _hs_rule medium '(^|[^[:alnum:]_])(iptables|ufw|nft)([^[:alnum:]_]|$)' 'changes firewall rules'
   _hs_rule medium 'git[[:space:]]+(checkout|restore)[^|;&]*[[:space:]]\.([[:space:]]|$)' 'discards local changes'
   _hs_rule medium '>>?[[:space:]]*/(etc|boot|usr|bin|sbin)/' 'writes to a system directory'
-  _hs_rule medium '\|[[:space:]]*(sudo[[:space:]]+)?(ba|z|da)?sh([[:space:]]|$)' 'pipes text into a shell'
+  _hs_rule medium "$_hs_into" 'pipes text into a shell or interpreter'
   _hs_rule medium '(^|[^[:alnum:]_])(delete[[:space:]]+from|update[[:space:]]+[[:alnum:]_."]+[[:space:]]+set)[[:space:]]' 'changes database rows'
   _hs_rule medium '(^|[^[:alnum:]_])(sed|gsed)[[:space:]]+(-[[:alnum:]]*i|--in-place)|perl[[:space:]]+-[[:alnum:]]*i|(^|[^[:alnum:]_])truncate[[:space:]]' 'edits files in place'
   _hs_rule medium '(^|[^[:alnum:]_])mv[[:space:]]' 'moves files and can overwrite the target'
-  _hs_rule medium 'git[[:space:]]+(push|branch[[:space:]]+-D|stash[[:space:]]+(drop|clear)|rebase|commit[^|;&]*--amend)' 'changes git history or a remote'
+  _hs_rule medium 'git[[:space:]]+(push|reset|branch[[:space:]]+-D|stash[[:space:]]+(drop|clear)|rebase|commit[^|;&]*--amend)' 'changes git history or a remote'
   _hs_rule medium '(npm|pnpm|yarn|cargo|gem|poetry)[[:space:]]+publish|twine[[:space:]]+upload|docker[[:space:]]+push|gh[[:space:]]+release[[:space:]]+create' 'publishes to the outside world'
   _hs_rule medium '(npm|pnpm|yarn)[[:space:]]+(i|install|add|remove|uninstall)[^|;&]*([[:space:]]-g|--global)|(brew|apt|apt-get|dnf|yum|pacman|port)[[:space:]]+(install|uninstall|remove|purge|upgrade|-S|-R)|pip3?[[:space:]]+(install|uninstall)' 'changes installed software'
   _hs_rule medium 'docker([[:space:]]+|-)compose[[:space:]]+(down|rm|stop)' 'stops or removes containers'

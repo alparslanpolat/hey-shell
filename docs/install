@@ -3,12 +3,14 @@
 #
 #   curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash
 #
-# Clones hey-shell into ~/hey-shell (or updates it if it is already there), then runs its installer, which
-# asks for your key and aliases. Installer flags go after `bash -s --`:
+# Clones the newest release of hey-shell (its highest vX.Y.Z tag, not whatever is on main) into ~/hey-shell, or
+# moves an existing install to it, then runs its installer, which asks for your key and aliases. Installer
+# flags go after `bash -s --`:
 #
 #   curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash -s -- --key alt+o --aliases --agent codex
 #
-# Env: HEY_SHELL_DIR (default: ~/hey-shell), HEY_SHELL_REPO (default: the GitHub repository; the tests use it).
+# Env: HEY_SHELL_DIR (default: ~/hey-shell), HEY_SHELL_REPO (default: the GitHub repository; the tests use it),
+#      HEY_SHELL_REF (default: the newest release tag; a branch such as main installs the development version).
 # Everything runs inside main, called on the last line, so a download cut short runs nothing.
 
 main() {
@@ -18,15 +20,29 @@ main() {
 
   command -v git >/dev/null 2>&1 || { echo "hey-shell: git is needed to install hey-shell; install git first" >&2; exit 1; }
 
+  # the newest release: the highest vX.Y.Z tag, compared as numbers
+  ref="${HEY_SHELL_REF:-$(git ls-remote --tags --refs "$repo" 'v*' | sed 's|.*refs/tags/||' \
+    | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1.2,1n -k2,2n -k3,3n | tail -1)}"
+  [ -n "$ref" ] || { echo "hey-shell: could not find a release of $repo" >&2; exit 1; }
+
   if [ -d "$dir/.git" ]; then
-    echo "Updating hey-shell in $dir"
-    git -C "$dir" pull --ff-only --quiet
+    # only ever run an installer from a checkout of this repository
+    origin="$(git -C "$dir" remote get-url origin 2>/dev/null || true)"
+    if [ "${origin%.git}" != "${repo%.git}" ]; then
+      echo "hey-shell: $dir is a git checkout of '${origin:-no remote}', not $repo; move it, or set HEY_SHELL_DIR" >&2
+      exit 1
+    fi
+    echo "Updating hey-shell in $dir to $ref"
+    git -C "$dir" fetch --quiet --depth 1 origin "refs/tags/$ref:refs/tags/$ref" 2>/dev/null \
+      || git -C "$dir" fetch --quiet origin "$ref"
+    git -C "$dir" -c advice.detachedHead=false checkout --quiet "$ref" 2>/dev/null \
+      || git -C "$dir" -c advice.detachedHead=false checkout --quiet FETCH_HEAD
   elif [ -e "$dir" ]; then
     echo "hey-shell: $dir already exists and is not a hey-shell checkout; move it, or set HEY_SHELL_DIR" >&2
     exit 1
   else
-    echo "Downloading hey-shell into $dir"
-    git clone --quiet --depth 1 "$repo" "$dir"
+    echo "Downloading hey-shell $ref into $dir"
+    git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$ref" "$repo" "$dir"
   fi
 
   # With `curl | bash` this script arrives on stdin, so give the installer the terminal for its questions
