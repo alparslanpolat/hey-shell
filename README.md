@@ -20,6 +20,22 @@ SUGGESTED COMMAND · REVIEW BEFORE RUNNING
 Risk: LOW · Check: No known issues
 ```
 
+Not sure what a command does? Ask with `hse` and it explains it too, then leaves the command on your next prompt:
+
+```
+$ hse undo my last git commit but keep the changes
+
+SUGGESTED COMMAND · REVIEW BEFORE RUNNING
+╭────────────────────────────────────────────────────────────────────────────╮
+│ $ git reset --soft HEAD~1                                                  │
+╰────────────────────────────────────────────────────────────────────────────╯
+
+Moves the branch back one commit and keeps all of that commit's changes
+staged, so you can recommit them.
+
+Risk: LOW · Check: No known issues
+```
+
 Works in bash and zsh on Linux, WSL2 and macOS. The commands come from the AI agent CLI you already use and are logged in to: [Claude Code](https://claude.com/claude-code) by default, or the [Codex CLI](https://github.com/openai/codex) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) (see [Choose your agent](#choose-your-agent)).
 
 ## At a glance
