@@ -91,7 +91,9 @@ hey-shell() {
       local out names='' color=never cmdfile
       if [[ $1 == --fix && $# == 1 ]]; then
         local -a recent=("${(@f)$(fc -ln -10 -1 2>/dev/null)}")
-        for (( i = ${#recent}; i > 0; i-- )); do [[ ${recent[i]} == *--fix* ]] || { last=${recent[i]}; break }; done
+        for (( i = ${#recent}; i > 0; i-- )); do   # skip the line that called us, also through an alias like hsf
+          [[ ${recent[i]} == *--fix* || ${aliases[${recent[i]%% *}]} == *--fix* ]] || { last=${recent[i]}; break }
+        done
       fi
       [[ -t 1 ]] && color=always
       [[ ${HEY_SHELL_CHECK:-1} == 0 ]] || names="$(print -l -- ${(k)aliases} ${(k)functions})"

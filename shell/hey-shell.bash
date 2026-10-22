@@ -63,7 +63,9 @@ hey-shell() {
       if [ "$1" = --fix ] && [ $# = 1 ]; then
         while IFS= read -r line; do
           line=${line#"${line%%[![:space:]]*}"}
-          case $line in *--fix*|'') ;; *) last=$line ;; esac
+          case $line in *--fix*|'') continue ;; esac
+          case $(alias "${line%% *}" 2>/dev/null) in *--fix*) continue ;; esac   # an alias such as hsf
+          last=$line
         done <<< "$(fc -ln -10 -1 2>/dev/null)"
       fi
       [ -t 1 ] && color=always

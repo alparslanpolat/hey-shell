@@ -2,6 +2,10 @@
 
 The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints it.
 
+## Unreleased
+
+- Short aliases `hsf` (`hey-shell --fix`) and `hsw` (`hey-shell --what`), offered by the installer (`--alias-fix`, `--alias-what`); `hsf` skips itself when it looks up your last command.
+
 ## 0.4.0
 
 - Fits your setup: Claude is told which modern tools you have (`rg`, `fd`, `jq`, ...) and what the folder is (package manager, Makefile targets, npm scripts, docker compose, git branch). Names only; `HEY_SHELL_CONTEXT=0` turns it off.

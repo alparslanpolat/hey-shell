@@ -56,9 +56,11 @@ new_home; run >/dev/null; out=$(run)
 ok '[[ $out == *"already installed"* ]]'                       "plain re-run says already installed"
 
 new_home; run --aliases >/dev/null
-ok '[ "$(count "^alias ")" = 4 ] && [ "$(count "^alias hse=.hey-shell --explain.")" = 1 ] && [ "$(count "^alias hsr=.hey-shell --risk.")" = 1 ] && [ "$(count "^alias hsc=.hey-shell --check.")" = 1 ]' "--aliases writes hs, hse, hsr and hsc"
+ok '[ "$(count "^alias ")" = 6 ] && [ "$(count "^alias hse=.hey-shell --explain.")" = 1 ] && [ "$(count "^alias hsr=.hey-shell --risk.")" = 1 ] && [ "$(count "^alias hsc=.hey-shell --check.")" = 1 ] && [ "$(count "^alias hsf=.hey-shell --fix.")" = 1 ] && [ "$(count "^alias hsw=.hey-shell --what.")" = 1 ]' "--aliases writes hs, hse, hsr, hsc, hsf and hsw"
 run --key alt+o >/dev/null
-ok '[ "$(count "^alias ")" = 4 ] && [ "$(count "alt+o")" = 1 ]' "changing the key keeps all four aliases"
+ok '[ "$(count "^alias ")" = 6 ] && [ "$(count "alt+o")" = 1 ]' "changing the key keeps all six aliases"
+run --alias-fix fixit >/dev/null
+ok '[ "$(count "^alias fixit=.hey-shell --fix.")" = 1 ] && [ "$(count "^alias hsf=")" = 0 ] && [ "$(count "^alias hsw=")" = 1 ]' "--alias-fix renames only that alias"
 run --alias-explain ex >/dev/null
 ok '[ "$(count "^alias ex=.hey-shell --explain.")" = 1 ] && [ "$(count "^alias hse=")" = 0 ] && [ "$(count "^alias hs=")" = 1 ]' "--alias-explain renames only that alias"
 run --no-alias >/dev/null
@@ -73,7 +75,7 @@ ok '[[ $out == *"already exists"* ]] && [ "$(count "^alias cat=.hey-shell --risk
 if command -v script >/dev/null; then
   new_home
   printf 'alt+o\n\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh >/dev/null 2>&1
-  ok '[ "$(count "^alias ")" = 4 ] && [ "$(count "alt+o")" = 1 ]' "interactive: Enter accepts the key and all four aliases"
+  ok '[ "$(count "^alias ")" = 6 ] && [ "$(count "alt+o")" = 1 ]' "interactive: Enter accepts the key and all six aliases"
   new_home
   printf '\nn\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh >/dev/null 2>&1
   ok '[ "$(count "^alias ")" = 0 ] && [ "$(count "ctrl+g")" = 1 ]' "interactive: n skips every alias"
@@ -81,7 +83,7 @@ if command -v script >/dev/null; then
   printf 'n\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh --key ctrl+g >/dev/null 2>&1
   ok '[ "$(count "^alias ")" = 0 ]' "interactive: n on a re-install removes the existing aliases"
   new_home
-  printf '\nc\n\nx\nn\nmycheck\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh >/dev/null 2>&1
+  printf '\nc\n\nx\nn\nmycheck\n\n\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh >/dev/null 2>&1
   ok '[ "$(count "^alias hs=.hey-shell.")" = 1 ] && [ "$(count "^alias x=.hey-shell --explain.")" = 1 ] && [ "$(count "--risk")" = 0 ] && [ "$(count "^alias mycheck=.hey-shell --check.")" = 1 ]' "interactive: c customizes each name, n skips one"
 fi
 

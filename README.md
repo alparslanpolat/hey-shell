@@ -25,12 +25,12 @@ Works in bash and zsh on Linux, WSL2 and macOS. Uses the [Claude Code](https://c
 | `hsr <command>` | rates a command: low, medium or high |
 | `hsc <command>` | predicts whether a command would fail, without running it |
 | `<command> # <change>`, then **Ctrl+G** | the command, changed as asked |
-| `hey-shell --fix` | right after a command fails: a corrected version, left on your next prompt |
-| `hey-shell -w <command>` | explains a command you already have |
+| `hsf` | right after a command fails: a corrected version, left on your next prompt |
+| `hsw <command>` | explains a command you already have |
 | `hey-shell --history [text]` | your recent requests and the commands they produced |
 | `hs` | the logo and the help |
 
-`hs`, `hse`, `hsr` and `hsc` are the short aliases the installer offers for `hey-shell`, `hey-shell -e`, `hey-shell -r` and `hey-shell -c`. The long forms always work.
+`hs`, `hse`, `hsr`, `hsc`, `hsf` and `hsw` are the short aliases the installer offers for `hey-shell`, `hey-shell -e`, `hey-shell -r`, `hey-shell -c`, `hey-shell --fix` and `hey-shell -w`. The long forms always work.
 
 ## Install
 
@@ -43,9 +43,9 @@ source ~/.bashrc        # or ~/.zshrc, or open a new terminal
 The installer asks two things:
 
 - **The key** that turns your request into a command (default `ctrl+g`). Keys are `ctrl+<letter|digit>` or `alt+<letter|digit>`; ones the terminal needs (`ctrl+c`, `ctrl+d`, `ctrl+z`, ...) are refused. On macOS, `alt+` keys need "Use Option as Meta key" enabled in your terminal.
-- **Short aliases**: `hs`, `hse`, `hsr`, `hsc`. Press Enter for all of them, `n` for none, or `c` to pick each name. An alias you already defined yourself is left alone, and a name that would hide an existing command asks first.
+- **Short aliases**: `hs`, `hse`, `hsr`, `hsc`, `hsf`, `hsw`. Press Enter for all of them, `n` for none, or `c` to pick each name. An alias you already defined yourself is left alone, and a name that would hide an existing command asks first.
 
-It then adds one marked block to your rc file that sets the key, puts `hey-shell` on your `PATH`, adds the aliases and loads the key binding. To skip the questions, pass the answers: `~/hey-shell/install.sh --key alt+o --aliases` (or `--no-alias`; `--alias`, `--alias-explain`, `--alias-risk` and `--alias-check` set single names; `--shell zsh` forces the shell).
+It then adds one marked block to your rc file that sets the key, puts `hey-shell` on your `PATH`, adds the aliases and loads the key binding. To skip the questions, pass the answers: `~/hey-shell/install.sh --key alt+o --aliases` (or `--no-alias`; `--alias`, `--alias-explain`, `--alias-risk`, `--alias-check`, `--alias-fix` and `--alias-what` set single names; `--shell zsh` forces the shell).
 
 ### As a Claude Code plugin
 
@@ -110,9 +110,9 @@ $ grep -rn TODO . # only shell files, skip tests     <Ctrl+G>
 $ rg -n --glob '*.sh' --glob '!*test*' TODO .
 ```
 
-**Fix the last command.** Run `hey-shell --fix` right after a command fails. It takes the command and its exit status from your shell history, asks for a corrected version, explains what was wrong, and leaves the fix on your next prompt like `hse` does. Nothing is re-run. You can also pass a command: `hey-shell --fix "gti status"`.
+**Fix the last command.** Run `hsf` (`hey-shell --fix`) right after a command fails. It takes the command and its exit status from your shell history, asks for a corrected version, explains what was wrong, and leaves the fix on your next prompt like `hse` does. Nothing is re-run. You can also pass a command: `hey-shell --fix "gti status"`.
 
-**Explain a command.** `hey-shell -w "<command>"` (`--what`) explains a command you found or were given, with its risk and failure check, before you decide to run it.
+**Explain a command.** `hsw "<command>"` (`hey-shell -w`, `--what`) explains a command you found or were given, with its risk and failure check, before you decide to run it.
 
 Explanations come in the language of your request; `--what` and `--fix` use your locale (`LANG`), so a `tr_TR` system gets Turkish.
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Adds (or with --uninstall removes) the hey-shell block in your shell rc file.
 #   ./install.sh [--shell bash|zsh] [--key ctrl+g|alt+o|...] [--uninstall]
-#                [--aliases | --no-alias | --alias NAME --alias-explain NAME --alias-risk NAME --alias-check NAME]
-# Without flags it asks for the key (default ctrl+g) and for short aliases (default: hs, hse, hsr, hsc).
+#                [--aliases | --no-alias | --alias NAME --alias-explain NAME --alias-risk NAME --alias-check NAME
+#                 --alias-fix NAME --alias-what NAME]
+# Without flags it asks for the key (default ctrl+g) and for short aliases (default: hs, hse, hsr, hsc, hsf, hsw).
 # Re-run with flags to change them; a run without flags on an existing install changes nothing.
 set -euo pipefail
 
@@ -14,13 +15,13 @@ uninstall=0
 key=""
 no_alias=0
 alias_flags=0
-a_main="" a_explain="" a_risk="" a_check=""   # alias names; "" = none
-ALIAS_KEYS="main explain risk check"
+a_main="" a_explain="" a_risk="" a_check="" a_fix="" a_what=""   # alias names; "" = none
+ALIAS_KEYS="main explain risk check fix what"
 
-default_for() { case $1 in main) echo hs ;; explain) echo hse ;; risk) echo hsr ;; check) echo hsc ;; esac; }
-command_for() { case $1 in main) echo "hey-shell" ;; explain) echo "hey-shell --explain" ;; risk) echo "hey-shell --risk" ;; check) echo "hey-shell --check" ;; esac; }
-get_alias() { case $1 in main) echo "$a_main" ;; explain) echo "$a_explain" ;; risk) echo "$a_risk" ;; check) echo "$a_check" ;; esac; }
-set_alias() { case $1 in main) a_main=$2 ;; explain) a_explain=$2 ;; risk) a_risk=$2 ;; check) a_check=$2 ;; esac; }
+default_for() { case $1 in main) echo hs ;; explain) echo hse ;; risk) echo hsr ;; check) echo hsc ;; fix) echo hsf ;; what) echo hsw ;; esac; }
+command_for() { case $1 in main) echo "hey-shell" ;; explain) echo "hey-shell --explain" ;; risk) echo "hey-shell --risk" ;; check) echo "hey-shell --check" ;; fix) echo "hey-shell --fix" ;; what) echo "hey-shell --what" ;; esac; }
+get_alias() { case $1 in main) echo "$a_main" ;; explain) echo "$a_explain" ;; risk) echo "$a_risk" ;; check) echo "$a_check" ;; fix) echo "$a_fix" ;; what) echo "$a_what" ;; esac; }
+set_alias() { case $1 in main) a_main=$2 ;; explain) a_explain=$2 ;; risk) a_risk=$2 ;; check) a_check=$2 ;; fix) a_fix=$2 ;; what) a_what=$2 ;; esac; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -30,6 +31,8 @@ while [ $# -gt 0 ]; do
     --alias-explain) a_explain="${2:?--alias-explain needs a name like hse}"; alias_flags=1; shift 2 ;;
     --alias-risk) a_risk="${2:?--alias-risk needs a name like hsr}"; alias_flags=1; shift 2 ;;
     --alias-check) a_check="${2:?--alias-check needs a name like hsc}"; alias_flags=1; shift 2 ;;
+    --alias-fix) a_fix="${2:?--alias-fix needs a name like hsf}"; alias_flags=1; shift 2 ;;
+    --alias-what) a_what="${2:?--alias-what needs a name like hsw}"; alias_flags=1; shift 2 ;;
     --aliases) for k in $ALIAS_KEYS; do set_alias "$k" "$(default_for "$k")"; done; alias_flags=1; shift ;;
     --no-alias) no_alias=1; shift ;;
     --uninstall) uninstall=1; shift ;;
@@ -77,14 +80,16 @@ if is_installed && [ -z "$key" ] && [ "$alias_flags" = 0 ] && [ "$no_alias" = 0 
 fi
 
 # aliases already in the block (kept when this run does not change them)
-ex_main="" ex_explain="" ex_risk="" ex_check=""
+ex_main="" ex_explain="" ex_risk="" ex_check="" ex_fix="" ex_what=""
 if is_installed; then
   ex_main="$(block_alias_for "$(command_for main)")"
   ex_explain="$(block_alias_for "$(command_for explain)")"
   ex_risk="$(block_alias_for "$(command_for risk)")"
   ex_check="$(block_alias_for "$(command_for check)")"
+  ex_fix="$(block_alias_for "$(command_for fix)")"
+  ex_what="$(block_alias_for "$(command_for what)")"
 fi
-existing_for() { case $1 in main) echo "$ex_main" ;; explain) echo "$ex_explain" ;; risk) echo "$ex_risk" ;; check) echo "$ex_check" ;; esac; }
+existing_for() { case $1 in main) echo "$ex_main" ;; explain) echo "$ex_explain" ;; risk) echo "$ex_risk" ;; check) echo "$ex_check" ;; fix) echo "$ex_fix" ;; what) echo "$ex_what" ;; esac; }
 
 # the alias already installed for a command, else the default name
 name_or_default() { local e; e="$(existing_for "$1")"; echo "${e:-$(default_for "$1")}"; }
