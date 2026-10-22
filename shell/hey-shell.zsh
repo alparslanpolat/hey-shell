@@ -40,7 +40,7 @@ _hey_shell_show() {
         case $word in HIGH) hl+=("$((s + 6)) $((s + 6 + ${#word})) fg=203") ;; MEDIUM) hl+=("$((s + 6)) $((s + 12)) fg=214") ;; esac
         i=${line[(i)Check: ]}
         if (( i <= ${#line} )); then
-          [[ ${line[i+7,-1]} == OK ]] && hl+=("$((s + i + 6)) $e fg=114") || hl+=("$((s + i + 6)) $e fg=203")
+          [[ ${line[i+7,-1]} == 'No known issues' ]] && hl+=("$((s + i + 6)) $e fg=114") || hl+=("$((s + i + 6)) $e fg=203")
         fi ;;
       'Update available:'*) hl+=("$s $e fg=245" "$s $((s + 17)) fg=155") ;;
       ' '*) hl+=("$s $e fg=245") ;;

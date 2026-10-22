@@ -63,6 +63,14 @@ if command -v tmux >/dev/null && ! tmux list-sessions >/dev/null 2>&1; then
   check ok   ''               'tmux new-session -d'
 fi
 
+# after a $(...), (...) or `...` the outer command's arguments and redirections follow, not a new command
+check ok '' 'kill $(lsof -ti tcp:3000) 2>/dev/null'
+check ok '' 'echo `date` 2>/dev/null'
+check ok '' 'diff <(ls) <(ls) 2>&1'
+check ok '' '(cd / && ls) > /dev/null'
+check fail "'nosuchprog-zz' not found" '2>/dev/null nosuchprog-zz'
+check fail "'nosuchprog-zz' not found" 'echo $(nosuchprog-zz) > /dev/null'
+
 # the check never runs the command
 marker="$nonrepo/ran"
 check ok '' "touch $marker"

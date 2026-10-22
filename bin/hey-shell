@@ -55,6 +55,31 @@ log_history() {
     "$(printf '%s' "$2" | tr '\t\n' '  ')" >> "$history_file" 2>/dev/null || true
 }
 
+# validate_command <text>: sets $command_line to the command in Claude's reply, or exits with a clear message.
+# Drops terminal control characters (a reply must not be able to drive your terminal), a leading "$ " prompt
+# and wrapping backticks, and skips an intro line such as "Here is the command:"; lines ending in a backslash
+# continue the command. Refuses prose, several separate
+# commands and replies over 2000 characters, instead of putting them on your prompt.
+validate_command() {
+  local text first
+  text="$(printf '%s\n' "$1" | LC_ALL=C tr -d '\000-\010\013-\037\177' | sed -e '/^```/d' -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d')"
+  text="$(printf '%s\n' "$text" | sed -e 's/^\$[[:space:]]\{1,\}//' -e 's/^`\(.*\)`$/\1/')"
+  first="$(printf '%s\n' "$text" | head -1)"
+  case $first in [A-Z]*' '*:) # an intro such as "Here is the command:" before the command itself
+    [ "$(printf '%s\n' "$text" | wc -l)" -gt 1 ] && { text="$(printf '%s\n' "$text" | sed '1d')"; first="$(printf '%s\n' "$text" | head -1)"; } ;;
+  esac
+  [ -n "$first" ] || die "Claude returned an empty reply. Try rephrasing the request"
+  case $first in
+    Sure*|Here*|"I "*|"I'"*|Sorry*|Unfortunately*|"As an"*|"You can"*|"To "*|[A-Z]*' '*:)
+      die "Claude answered in prose instead of a command (\"$(printf '%s' "$first" | cut -c1-60)...\"). Try rephrasing the request" ;;
+  esac
+  if [ "$(printf '%s\n' "$text" | wc -l)" -gt 1 ] && printf '%s\n' "$text" | sed '$d' | grep -qv '\\$'; then
+    die "Claude returned several commands instead of one. Try a narrower request, or join the steps with && yourself"
+  fi
+  [ "${#text}" -le 2000 ] || die "Claude returned an unusually long reply (${#text} characters). Try a narrower request"
+  command_line=$text
+}
+
 # Turn a failed `claude -p` run into one actionable line.
 explain_failure() {
   local text first
@@ -151,10 +176,10 @@ case "${1:-}" in
     exit 0 ;;
 esac
 
-mode=command
+mode="command"
 case "${1:-}" in
   --explain|-e) mode=explain; shift ;;
-  --what|-w) mode=what; shift ;;
+  --what|-w) mode="what"; shift ;;
   --fix) mode=fix; shift ;;
 esac
 
@@ -202,7 +227,7 @@ esac
 case $mode in
   command)
     ask_claude "Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. $context $rules $task"
-    command_line="$(printf '%s\n' "$out" | sed -e '/^```/d' -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d')"
+    validate_command "$out"
     printf '%s\n' "$command_line"
     log_history "$request" "$command_line"
     notice
@@ -225,7 +250,7 @@ $out" ;;
 esac
 
 cleaned="$(printf '%s\n' "$out" | sed -e '/^```/d' -e 's/[[:space:]]*$//' | sed '/./,$!d')"
-command_line="$(printf '%s\n' "$cleaned" | head -1 | sed 's/^[[:space:]]*//')"
+validate_command "$(printf '%s\n' "$cleaned" | head -1)"
 explanation='' warning=''
 while IFS= read -r line; do
   case $line in

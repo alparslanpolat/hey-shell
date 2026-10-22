@@ -17,17 +17,19 @@ hey_shell_banner() {
 
 # Needs hey_shell_colors to have run (hints are gray).
 hey_shell_usage() {
+  local key="${HEY_SHELL_KEY:-ctrl+g}"
+  printf '  Type a request at your prompt and press %s%s%s. The line becomes a command\n' "$C_BRAND" "$key" "$C_OFF"
+  printf '  you can read, edit and run with Enter. Nothing ever runs for you.\n'
+  printf '  %sNot quite right? Add %s# <change>%s after it and press %s again.%s\n\n' "$C_MUTED" "$C_OFF" "$C_MUTED" "$key" "$C_OFF"
   printf 'usage: hey-shell [options] <request>\n\n'
-  printf '  -e, --explain   explain the command, then leave it on your next prompt\n'
-  printf '  -w, --what      explain a command you already have\n'
+  printf '  -e, --explain   explain the command, then leave it on your next prompt\n\n'
+  printf '%swhen you need more:%s\n' "$C_MUTED" "$C_OFF"
   printf '      --fix       fix your last failed command (or the one you pass)\n'
-  printf '      --history   your recent requests (add text to filter)\n'
+  printf '  -w, --what      explain a command you already have\n'
   printf '  -r, --risk      rate a command: low, medium or high\n'
-  printf '  -c, --check     predict whether a command would fail\n'
+  printf '  -c, --check     look for known reasons a command would fail\n'
+  printf '      --history   your recent requests (add text to filter)\n'
   printf '  -h, --help      show this help\n'
   printf '  -V, --version   show the version\n'
-  printf '  -U, --update    update to the latest version\n\n'
-  printf '%s  %-15s type a request at your prompt, then press it%s\n' "$C_MUTED" "${HEY_SHELL_KEY:-ctrl+g}" "$C_OFF"
-  printf '%s  %-15s add it after a command to change it, then press the key%s\n' "$C_MUTED" "# <change>" "$C_OFF"
-  printf '%s  %-15s generated commands are never run for you%s\n' "$C_MUTED" "nothing runs" "$C_OFF"
+  printf '  -U, --update    update to the latest version\n'
 }

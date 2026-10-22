@@ -4,6 +4,13 @@ The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints 
 
 ## Unreleased
 
+- Ctrl+G now works in macOS's built-in bash 3.2, which has no `READLINE_LINE` (it silently did nothing before).
+- `Check: OK` is now `Check: No known issues`: it means no known problem was found, not that the command was tested.
+- Replies are validated before they reach your prompt: terminal control characters are removed, a `$ ` prompt and backticks are stripped, and prose, several commands or very long replies are refused with a message.
+- Risk rules catch in-place edits (`sed -i`, `perl -pi`, `truncate`), `> file` overwrites, `mv`, `git push`, publishing, global installs, cloud deletes (`aws s3 rm --recursive`, `gcloud … delete`, `helm uninstall`), `rsync --delete`, `eval "$(curl …)"`, `base64 -d | sh`, and SQL `DELETE`/`UPDATE` without `WHERE`. The README lists what the checks cannot detect.
+- The failure check no longer mistakes a redirection after `$(...)` for a program (`kill $(lsof -ti :3000) 2>/dev/null`).
+- Help and README lead with the main flow; the other options are grouped under "when you need more".
+- CI on Linux and macOS (bash 3.2 and 5, zsh), new tests that drive real interactive shells, bash install/uninstall tests, and an evaluation suite of 61 requests for the model's commands (`test/eval/`).
 - Short aliases `hsf` (`hey-shell --fix`) and `hsw` (`hey-shell --what`), offered by the installer (`--alias-fix`, `--alias-what`); `hsf` skips itself when it looks up your last command.
 
 ## 0.4.0

@@ -21,6 +21,7 @@ _hs_emit_word() {
   fi
   case $w in
     *=*) return 0 ;;                                  # VAR=value prefix
+    [0-9]'>'*|[0-9]'<'*|'>'*|'<'*|'&>'*) return 0 ;;   # redirection before the program: 2>/dev/null cmd
     sudo|env|time|nohup|command|exec|nice) _hs_skip_seg=1; return 0 ;; # wrapper: the next word is the program
     if|then|else|elif|do|while|until|'!'|'{') return 0 ;;   # keyword: the next word is the command
   esac
@@ -46,7 +47,7 @@ _hs_skip_parens() {
 # Arithmetic ($((...)), ((...)), for ((...))) and array literals (a=(...)) are skipped as opaque text:
 # their contents are not commands.
 _hs_command_words() {
-  local s=$1 n=${#1} i=0 c prev='' next='' q=''
+  local s=$1 n=${#1} i=0 c prev='' next='' q='' in_bt=0
   _hs_word='' _hs_have=0 _hs_at_cmd=1 _hs_skip_seg=0
   while [ "$i" -lt "$n" ]; do
     c=${s:$i:1}
@@ -76,7 +77,11 @@ _hs_command_words() {
         '&') if [ "$prev" = '>' ] || [ "$prev" = '<' ] || [ "$next" = '>' ]; then
                _hs_word="$_hs_word$c"; _hs_have=1       # redirection such as 2>&1 or &>file
              else _hs_emit_word; _hs_at_cmd=1; _hs_skip_seg=0; fi ;;
-        '|'|';'|$'\n'|')'|'`') _hs_emit_word; _hs_at_cmd=1; _hs_skip_seg=0 ;;
+        '|'|';'|$'\n') _hs_emit_word; _hs_at_cmd=1; _hs_skip_seg=0 ;;
+        ')') _hs_emit_word; _hs_skip_seg=0   # after $(...), (...) or <(...): arguments follow; after f(): the body
+             if [ "$prev" = '(' ]; then _hs_at_cmd=1; else _hs_at_cmd=0; fi ;;
+        '`') _hs_emit_word; _hs_skip_seg=0                     # opening: a command starts; closing: arguments
+             if [ "$in_bt" = 0 ]; then in_bt=1 _hs_at_cmd=1; else in_bt=0 _hs_at_cmd=0; fi ;;
         *) _hs_word="$_hs_word$c"; _hs_have=1 ;;
       esac
     fi

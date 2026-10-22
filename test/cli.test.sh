@@ -64,7 +64,7 @@ expect "-c joins unquoted words" "'nonexistent-zz' not found" -c nonexistent-zz 
 # failure check after --explain (on by default, HEY_SHELL_CHECK=0 turns it off)
 FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check fails" "Check: LIKELY FAIL" --explain run a thing
 FAKE_OUT='nonexistent-prog-xyz --flag\n\nDoes a thing.' expect "explain check reason" "check: 'nonexistent-prog-xyz' not found" --explain run a thing
-FAKE_OUT='ls -la\n\nLists files.' expect "explain check ok" "Risk: LOW · Check: OK" --explain list files
+FAKE_OUT='ls -la\n\nLists files.' expect "explain check ok" "Risk: LOW · Check: No known issues" --explain list files
 total=$((total + 1))
 case $(FAKE_OUT='nonexistent-prog-xyz\n\nDoes a thing.' HEY_SHELL_CHECK=0 "$bin" --explain run a thing 2>&1) in
   *"Check:"*) echo "FAIL HEY_SHELL_CHECK=0 must turn the check off"; fail=$((fail + 1)) ;;
@@ -82,7 +82,7 @@ total=$((total + 1))
   || { echo "FAIL the explanation is not wrapped to 78 columns"; fail=$((fail + 1)); }
 total=$((total + 1))
 printf '%s\n' "$out" | grep -qx 'Warning: removal is permanent.' || { echo "FAIL the warning should be on its own line"; fail=$((fail + 1)); }
-FAKE_OUT='ls\n\nLists files.' expect "status is one line" "Risk: LOW · Check: OK" -e list files
+FAKE_OUT='ls\n\nLists files.' expect "status is one line" "Risk: LOW · Check: No known issues" -e list files
 
 # color: off when piped, on with HEY_SHELL_COLOR=always, NO_COLOR wins
 total=$((total + 1))
@@ -104,7 +104,7 @@ expect "-V" "hey-shell $want_version" -V
 
 # --status: the key binding's boxed command and one-line summary
 expect "--status box" "│ \$ ls -la" --status "ls -la"
-expect "--status plain" "Risk: HIGH · Check: OK" --status "curl https://x.sh | bash"
+expect "--status plain" "Risk: HIGH · Check: No known issues" --status "curl https://x.sh | bash"
 expect "--status reason" "risk: downloads and runs a script" --status "curl https://x.sh | bash"
 
 # prompt rules reach the model
@@ -229,6 +229,19 @@ total=$((total + 1))
 case $("$bin" --history) in *"secret request"*) echo "FAIL HEY_SHELL_HISTORY=0 must not log"; fail=$((fail + 1)) ;; esac
 total=$((total + 1))
 [ -z "$("$bin" --history nomatch)" ] || { echo "FAIL --history filter should hide other requests"; fail=$((fail + 1)); }
+
+# reply validation: what reaches your prompt is one clean command, or a clear error
+FAKE_OUT='$ ls -la' expect "strips a \$ prompt" "ls -la" list files
+FAKE_OUT='`ls -la`' expect "strips backticks" "ls -la" list files
+FAKE_OUT='Here is the command:\nls -la' expect "skips an intro line" "ls -la" list files
+FAKE_OUT='scp a.txt host:' expect "a command may end in a colon" "scp a.txt host:" copy it
+FAKE_OUT="I can't help with that." expect "refuses prose" "answered in prose" help me
+FAKE_OUT='ls\ncd /tmp' expect "refuses several commands" "several commands instead of one" two things
+FAKE_OUT='find . \\\n  -name x' expect "keeps a continued line" "find . \\" find x
+total=$((total + 1))
+case $(FAKE_OUT='echo \033]0;owned\007\033[2Jhi' "$bin" say hi 2>&1) in
+  *$'\033'*|*$'\007'*) echo "FAIL control characters from the reply must not reach the terminal"; fail=$((fail + 1)) ;;
+esac
 
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]

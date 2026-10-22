@@ -14,13 +14,7 @@ ok() { total=$((total + 1)); if ! eval "$1"; then printf 'FAIL %s\n  check: %s\n
 count() { grep -c -- "$1" "$rc" || true; }
 
 # Run "$@" on a pseudo-terminal (the installer only asks its questions on one), fed by this function's stdin.
-in_pty() {
-  if script --version 2>/dev/null | grep -q util-linux; then
-    script -qec "$(printf '%q ' "$@")" /dev/null   # GNU/Linux
-  else
-    script -q /dev/null "$@"                         # BSD/macOS
-  fi
-}
+in_pty() { python3 -I "$root/test/pty_run.py" "$@"; }
 
 new_home; run >/dev/null
 ok '[ "$(count "export HEY_SHELL_KEY=\"ctrl+g\"")" = 1 ]'      "default key is written"
@@ -57,6 +51,16 @@ ok '[ "$(count "^$")" = 1 ]'                                   "re-installing do
 run --uninstall >/dev/null
 ok '[ "$(cat "$rc")" = "export A=1" ]'                         "uninstall leaves the rc file as it was"
 
+# bash: the rc file is ~/.bash_profile on macOS (Terminal opens login shells) and ~/.bashrc elsewhere
+new_home
+[ "$(uname -s)" = Darwin ] && brc="$H/.bash_profile" || brc="$H/.bashrc"
+printf 'export B=1\n' > "$brc"
+HOME="$H" SHELL=/bin/bash "$installer" --shell bash --aliases </dev/null >/dev/null 2>&1
+ok 'grep -q "source \".*/shell/hey-shell.bash\"" "$brc" && [ "$(grep -c "^alias " "$brc")" = 6 ]' "bash: installs into the bash rc file"
+ok 'bash -n "$brc"'                                            "bash: the rc file still parses"
+HOME="$H" SHELL=/bin/bash "$installer" --shell bash --uninstall </dev/null >/dev/null 2>&1
+ok '[ "$(cat "$brc")" = "export B=1" ]'                        "bash: uninstall leaves the rc file as it was"
+
 new_home; run >/dev/null; out=$(run)
 ok '[[ $out == *"already installed"* ]]'                       "plain re-run says already installed"
 
@@ -77,7 +81,7 @@ ok '[[ $out == *"alias '"'"'hse'"'"' is already defined"* ]] && [ "$(count "^ali
 out=$(run --alias-risk cat)
 ok '[[ $out == *"already exists"* ]] && [ "$(count "^alias cat=.hey-shell --risk.")" = 1 ]' "warns when an alias shadows a command"
 
-if command -v script >/dev/null; then
+if command -v python3 >/dev/null; then
   new_home
   printf 'alt+o\n\n' | in_pty env HOME="$H" SHELL=/bin/zsh "$installer" --shell zsh >/dev/null 2>&1
   ok '[ "$(count "^alias ")" = 6 ] && [ "$(count "alt+o")" = 1 ]' "interactive: Enter accepts the key and all six aliases"

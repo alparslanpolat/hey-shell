@@ -11,22 +11,29 @@ SUGGESTED COMMAND · REVIEW BEFORE RUNNING
 ╭────────────────────────────────────────────────────────────────────────────╮
 │ $ docker ps -q                                                             │
 ╰────────────────────────────────────────────────────────────────────────────╯
-Risk: LOW · Check: OK
+Risk: LOW · Check: No known issues
 ```
 
 Works in bash and zsh on Linux, WSL2 and macOS. Uses the [Claude Code](https://claude.com/claude-code) CLI (`claude -p`), so it must be installed and logged in.
 
 ## At a glance
 
+The whole idea fits in one line: **type a request, press Ctrl+G, read the command, press Enter.**
+
 | You type | What happens |
 | --- | --- |
 | a request, then **Ctrl+G** | the line becomes the command; read it, edit it, press Enter |
-| `hse <request>` | the command, a short explanation, its risk and a failure check; the command is left on your next prompt |
-| `hsr <command>` | rates a command: low, medium or high |
-| `hsc <command>` | predicts whether a command would fail, without running it |
 | `<command> # <change>`, then **Ctrl+G** | the command, changed as asked |
+| `hse <request>` | the same command with a short explanation, left on your next prompt |
+
+**When you need more**, these are there, and none of them is needed for the main flow:
+
+| You type | What happens |
+| --- | --- |
 | `hsf` | right after a command fails: a corrected version, left on your next prompt |
 | `hsw <command>` | explains a command you already have |
+| `hsr <command>` | rates a command: low, medium or high |
+| `hsc <command>` | looks for known reasons a command would fail, without running it |
 | `hey-shell --history [text]` | your recent requests and the commands they produced |
 | `hs` | the logo and the help |
 
@@ -89,7 +96,7 @@ SUGGESTED COMMAND · REVIEW BEFORE RUNNING
 Removes every container that has exited. Replace the filter to remove only some.
 Warning: removal is permanent and also deletes the containers' writable data.
 
-Risk: MEDIUM · Check: OK
+Risk: MEDIUM · Check: No known issues
   risk: stops or removes containers
 ```
 
@@ -171,11 +178,23 @@ Commands are only placed on the prompt, never executed. Each generated command i
 
 | Level | Shown as | Examples |
 | --- | --- | --- |
-| high | `Risk: HIGH` in red, with the reason | `curl … \| bash`, `rm -rf`, `find … -delete`, `git push --force`, `git reset --hard`, `docker volume rm`, `terraform destroy`, `dd`, `mkfs` |
-| medium | `Risk: MEDIUM` in amber, with the reason | `sudo`, `rm`, `kill`, `docker stop`, `systemctl restart`, `chown -R`, writes to `/etc` |
+| high | `Risk: HIGH` in red, with the reason | `curl … \| bash`, `eval "$(curl …)"`, `base64 -d \| sh`, `rm -rf`, `find … -delete`, `rsync --delete`, `git push --force`, `git reset --hard`, `docker volume rm`, `kubectl delete`, `terraform destroy`, `aws s3 rm --recursive`, SQL `DELETE`/`UPDATE` without `WHERE`, `dd`, `mkfs` |
+| medium | `Risk: MEDIUM` in amber, with the reason | `sudo`, `rm`, `mv`, `kill`, `sed -i`, `> file`, `git push`, `npm publish`, `brew install`, `pip install`, `docker compose down`, `kubectl apply`, `systemctl restart`, `chown -R`, writes to `/etc` |
 | low | `Risk: LOW` | everything else |
 
-This is pattern matching, not a guarantee: it can miss risky commands and flag harmless ones, so always read the command before pressing Enter. `hsr "<command>"` rates one by hand.
+The failure check works the same way: `Check: No known issues` means none of its checks found a problem (syntax, missing programs, no git repository, no tmux server, no docker daemon). It does not mean the command was tested or will succeed.
+
+**What the checks cannot detect.** Both are pattern matching on the command's text, not a guarantee:
+
+- Commands built at run time: `$(echo rm) -rf build`, `x=rm; $x -rf build`, `eval "$cmd"`.
+- What a script or program does once it runs: `./deploy.sh`, `make clean`, `npm run reset`.
+- Your aliases and functions, unless they are defined in the shell you pressed the key in.
+- Whether files, hosts, permissions, credentials or databases are what the command expects.
+- Data loss through a program's own options they do not know about.
+
+So always read the command before pressing Enter. `hsr "<command>"` rates one by hand.
+
+Every reply is also validated before it reaches your prompt: terminal control characters are removed, a leading `$ ` or wrapping backticks are stripped, and prose, several separate commands or an unusually long reply are refused with a message instead of being placed on your prompt.
 
 ## Privacy
 
@@ -186,6 +205,8 @@ The risk rating and the failure check run locally and send nothing. Your request
 ## Troubleshooting
 
 **`hey-shell: command not found` or `hs: command not found` right after installing.** The installer edits your rc file, and only new shells read it. Open a new terminal or run `source ~/.bashrc` (`~/.zshrc` in zsh). The file name is `.bashrc`, with no dot in the middle.
+
+**Ctrl+G in macOS's built-in bash (3.2).** That bash cannot read or replace the line from a key binding, so there the key turns your request into a comment and accepts it (nothing runs), reads it back from history, removes it again, and puts the command on the next prompt. It works the same; you just see your request on its own line first. Homebrew's bash 5 (`brew install bash`) or zsh replace the line directly.
 
 **Ctrl+G does nothing.** Check the key is bound: `bind -X | grep hey_shell` in bash, `bindkey | grep hey_shell` in zsh. If nothing is listed, open a new terminal. If another tool uses the key, pick a different one with `~/hey-shell/install.sh --key ctrl+o`.
 

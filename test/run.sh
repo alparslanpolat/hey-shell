@@ -3,7 +3,7 @@
 set -u
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 status=0
-for suite in risk cli check install; do
+for suite in risk cli check install shell; do
   printf '%-8s ' "$suite"
   if out=$("$dir/$suite.test.sh" 2>&1); then
     printf '%s\n' "$out" | tail -1
