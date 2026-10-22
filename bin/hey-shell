@@ -2,6 +2,11 @@
 # hey-shell: turn a plain-language request into one shell command via `claude -p`.
 #   hey-shell "list running container ids"   -> prints the command, never runs it
 #   hey-shell -e "restart postgres"          -> command, a short explanation, and its risk rating (long form: --explain)
+#   hey-shell "<command> # <change>"         -> the command, changed as asked (refine a generated command)
+#   hey-shell -w "<command>"                 -> explains a command you already have (long form: --what)
+#   hey-shell --fix ["<command>"]            -> a corrected version of a failed command; the shell integration
+#                                               passes your last command and its exit status when none is given
+#   hey-shell --history [text]               -> your last 20 requests and their commands, optionally filtered
 #   hey-shell -r "<command>"                 -> prints low|medium|high, then the reason when not low (long form: --risk)
 #   hey-shell -c "<command>"                 -> predicts whether the command would fail, without running it (long form: --check)
 #   hey-shell [-h]                           -> logo and usage (long form: --help; exit 2 when no request was given)
@@ -12,7 +17,9 @@
 #      HEY_SHELL_CHECK (default: on; 0 = do not predict failure after --explain and on the key binding),
 #      HEY_SHELL_COLOR (auto|always|never; NO_COLOR also turns color off),
 #      HEY_SHELL_TIMEOUT (default: 30; seconds to wait for Claude),
-#      HEY_SHELL_UPDATE_CHECK (default: on; 0 = no "Update available" line)
+#      HEY_SHELL_UPDATE_CHECK (default: on; 0 = no "Update available" line),
+#      HEY_SHELL_CONTEXT (default: on; 0 = do not tell Claude about installed tools and the project),
+#      HEY_SHELL_HISTORY (default: on; 0 = do not log requests to ~/.local/state/hey-shell/history.tsv)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -26,6 +33,8 @@ source "$root/lib/render.sh"
 source "$root/lib/banner.sh"
 # shellcheck source=../lib/update.sh
 source "$root/lib/update.sh"
+# shellcheck source=../lib/context.sh
+source "$root/lib/context.sh"
 
 claude_bin="${HEY_SHELL_CLAUDE:-claude}"
 out=""
@@ -35,6 +44,16 @@ die() { echo "hey-shell: $1" >&2; exit 1; }
 # The update notice on stderr, so output that scripts and the key binding capture stays clean. Only on a
 # terminal: the key binding shows it through --status instead.
 notice() { [ -t 2 ] || return 0; hey_shell_colors; hey_shell_update_notice >&2; }
+
+history_file="${XDG_STATE_HOME:-$HOME/.local/state}/hey-shell/history.tsv"
+
+# log_history <request> <command>: one tab-separated line per answer, kept on this machine only
+log_history() {
+  [ "${HEY_SHELL_HISTORY:-1}" != 0 ] || return 0
+  mkdir -p "$(dirname "$history_file")" 2>/dev/null || return 0
+  printf '%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M')" "$(printf '%s' "$1" | tr '\t\n' '  ')" \
+    "$(printf '%s' "$2" | tr '\t\n' '  ')" >> "$history_file" 2>/dev/null || true
+}
 
 # Turn a failed `claude -p` run into one actionable line.
 explain_failure() {
@@ -122,10 +141,22 @@ case "${1:-}" in
   --update|-U)
     hey_shell_update
     exit $? ;;
+  --history)
+    shift
+    hey_shell_colors
+    [ -s "$history_file" ] || { echo "no history yet${HEY_SHELL_HISTORY:+ (HEY_SHELL_HISTORY=$HEY_SHELL_HISTORY)}"; exit 0; }
+    grep -iF -- "${*:-}" "$history_file" | tail -20 | while IFS=$'\t' read -r when req cmd; do
+      printf '%s%s%s  %s\n    %s$%s %s%s%s\n' "$C_MUTED" "$when" "$C_OFF" "$req" "$C_BRAND" "$C_OFF" "$C_CMD" "$cmd" "$C_OFF"
+    done
+    exit 0 ;;
 esac
 
-explain=0
-case "${1:-}" in --explain|-e) explain=1; shift ;; esac
+mode=command
+case "${1:-}" in
+  --explain|-e) mode=explain; shift ;;
+  --what|-w) mode=what; shift ;;
+  --fix) mode=fix; shift ;;
+esac
 
 case "${1:-}" in
   --) shift ;;
@@ -133,6 +164,10 @@ case "${1:-}" in
 esac
 
 request="$*"
+if [ "$mode" = fix ] && [ -z "$request" ]; then
+  request="${HEY_SHELL_LAST_CMD:-}"
+  [ -n "$request" ] || die "no command to fix: run it right after a failed command (needs the shell integration), or pass it: hey-shell --fix '<command>'"
+fi
 [ -n "$request" ] || { { hey_shell_colors; hey_shell_banner; hey_shell_usage; } >&2; exit 2; }
 
 case "$(uname -s)" in
@@ -142,17 +177,53 @@ case "$(uname -s)" in
 esac
 shell_name="${HEY_SHELL_TARGET:-$(basename "${SHELL:-bash}")}"
 
-context="Environment: $os, $shell_name, current directory $PWD."
+context="Environment: $os, $shell_name, current directory $PWD. $(hey_shell_context)"
 rules="Always answer with the command that does the task: never reply with a --help or man lookup unless the task asks how to use a tool, and if unsure which tool the user has, pick the most common one. Prefer portable, read-only commands. Do not use sudo or destructive commands (rm, kill, force flags, drops, prune) unless the task explicitly asks for them."
+explain_format="line 1 is exactly one $shell_name command (no markdown, no backticks); line 2 is blank; then a plain-language explanation of at most two short sentences"
+warning_format="then, only if there is a real risk or precondition, one final line that starts with 'Warning: ' followed by one short sentence (keep the word 'Warning:' in English)"
+# -e answers in the language of the request; --what and --fix have no words of yours, so they follow the locale
+language="Write the explanation in the same language as the task's words."
+locale="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+case ${locale%%_*} in
+  ''|C|C.*|POSIX|en) lang_name=English ;;
+  tr) lang_name=Turkish ;; de) lang_name=German ;; fr) lang_name=French ;; es) lang_name=Spanish ;;
+  pt) lang_name=Portuguese ;; it) lang_name=Italian ;; nl) lang_name=Dutch ;; pl) lang_name=Polish ;;
+  ru) lang_name=Russian ;; uk) lang_name=Ukrainian ;; ja) lang_name=Japanese ;; ko) lang_name=Korean ;;
+  zh) lang_name=Chinese ;; *) lang_name="the language of the locale ${locale%%.*}" ;;
+esac
+locale_language="Write the explanation in $lang_name."
 
-if [ "$explain" = 0 ]; then
-  ask_claude "Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. $context $rules Task: $request"
-  printf '%s\n' "$out" | sed -e '/^```/d' -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d'
-  notice
-  exit 0
-fi
+# "<command> # <change>": refine a command instead of starting over
+task="Task: $request"
+case $request in
+  *' # '*) task="Start from this command (or request): ${request%% # *} -- and change it like this: ${request#* # }" ;;
+esac
 
-ask_claude "Reply in this exact format: line 1 is exactly one $shell_name command (no markdown, no backticks); line 2 is blank; then a plain-language explanation of at most two short sentences saying what the command does and what to replace; then, only if there is a real risk or precondition, one final line that starts with 'Warning: ' followed by one short sentence. $context $rules Task: $request"
+case $mode in
+  command)
+    ask_claude "Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. $context $rules $task"
+    command_line="$(printf '%s\n' "$out" | sed -e '/^```/d' -e 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d')"
+    printf '%s\n' "$command_line"
+    log_history "$request" "$command_line"
+    notice
+    exit 0 ;;
+  explain)
+    label='SUGGESTED COMMAND'
+    ask_claude "Reply in this exact format: $explain_format saying what the command does and what to replace; $warning_format. $language $context $rules $task" ;;
+  fix)
+    label='SUGGESTED FIX'
+    hey_shell_check "$request"
+    hint="${HEY_SHELL_LAST_STATUS:+ It exited with status $HEY_SHELL_LAST_STATUS.}"
+    [ "$HEY_SHELL_CHECK_LEVEL" = ok ] || hint="$hint A static check says: $HEY_SHELL_CHECK_REASON."
+    ask_claude "This command failed: $request$hint Reply in this exact format: $explain_format saying what was wrong and what you changed; $warning_format. If it needs something you cannot know (a file, a service), keep the command and say so. You cannot run commands: never say that you ran or tested one. $locale_language $context $rules"
+    request="fix: $request" ;;
+  what)
+    ask_claude "Explain what this $shell_name command does, for someone about to run it. Reply with a plain-language explanation of at most three short sentences (no markdown, no backticks, do not repeat the command); $warning_format. $locale_language $context Command: $request"
+    out="$request
+
+$out" ;;
+esac
+
 cleaned="$(printf '%s\n' "$out" | sed -e '/^```/d' -e 's/[[:space:]]*$//' | sed '/./,$!d')"
 command_line="$(printf '%s\n' "$cleaned" | head -1 | sed 's/^[[:space:]]*//')"
 explanation='' warning=''
@@ -166,7 +237,10 @@ done <<< "$(printf '%s\n' "$cleaned" | sed '1d')"
 
 hey_shell_risk "$command_line"
 [ "${HEY_SHELL_CHECK:-1}" = 0 ] || hey_shell_check "$command_line"
-[ -z "${HEY_SHELL_CMD_FILE:-}" ] || printf '%s' "$command_line" > "$HEY_SHELL_CMD_FILE" # for the shell integration's prefill
+if [ "$mode" != what ]; then
+  [ -z "${HEY_SHELL_CMD_FILE:-}" ] || printf '%s' "$command_line" > "$HEY_SHELL_CMD_FILE" # for the shell integration's prefill
+  log_history "$request" "$command_line"
+fi
 hey_shell_colors
-hey_shell_render_explain "$command_line" "$explanation" "$warning"
+hey_shell_render_explain "$command_line" "$explanation" "$warning" "${label:-COMMAND}" "${label:+REVIEW BEFORE RUNNING}"
 hey_shell_update_notice

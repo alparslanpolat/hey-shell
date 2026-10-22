@@ -82,16 +82,24 @@ _hey_shell_fill() {
 }
 
 # `hey-shell -e ...` explains, then leaves the command on the next prompt, ready to edit or run.
+# `hey-shell --fix` does the same for a corrected version of your last command (taken from history, with its
+# exit status), unless you pass a command.
 hey-shell() {
+  local last_status=$? last='' i
   case "${1:-}" in
-    -e|--explain)
+    -e|--explain|--fix)
       local out names='' color=never cmdfile
+      if [[ $1 == --fix && $# == 1 ]]; then
+        local -a recent=("${(@f)$(fc -ln -10 -1 2>/dev/null)}")
+        for (( i = ${#recent}; i > 0; i-- )); do [[ ${recent[i]} == *--fix* ]] || { last=${recent[i]}; break }; done
+      fi
       [[ -t 1 ]] && color=always
       [[ ${HEY_SHELL_CHECK:-1} == 0 ]] || names="$(print -l -- ${(k)aliases} ${(k)functions})"
       cmdfile=$(mktemp)
-      out=$(HEY_SHELL_COLOR=$color HEY_SHELL_CMD_FILE=$cmdfile HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || { local st=$?; rm -f "$cmdfile"; return $st }
+      out=$(HEY_SHELL_LAST_CMD=$last HEY_SHELL_LAST_STATUS=${last:+$last_status} HEY_SHELL_COLOR=$color \
+        HEY_SHELL_CMD_FILE=$cmdfile HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || { local st=$?; rm -f "$cmdfile"; return $st }
       print -r -- "$out"
-      print -rz -- "$(<$cmdfile)"
+      [[ -s $cmdfile ]] && print -rz -- "$(<$cmdfile)"
       rm -f "$cmdfile" ;;
     *) command hey-shell "$@" ;;
   esac

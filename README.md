@@ -24,6 +24,10 @@ Works in bash and zsh on Linux, WSL2 and macOS. Uses the [Claude Code](https://c
 | `hse <request>` | the command, a short explanation, its risk and a failure check; the command is left on your next prompt |
 | `hsr <command>` | rates a command: low, medium or high |
 | `hsc <command>` | predicts whether a command would fail, without running it |
+| `<command> # <change>`, then **Ctrl+G** | the command, changed as asked |
+| `hey-shell --fix` | right after a command fails: a corrected version, left on your next prompt |
+| `hey-shell -w <command>` | explains a command you already have |
+| `hey-shell --history [text]` | your recent requests and the commands they produced |
 | `hs` | the logo and the help |
 
 `hs`, `hse`, `hsr` and `hsc` are the short aliases the installer offers for `hey-shell`, `hey-shell -e`, `hey-shell -r` and `hey-shell -c`. The long forms always work.
@@ -97,6 +101,27 @@ Generated commands favor portable, read-only forms and avoid `sudo` and destruct
 
 If something goes wrong you get one actionable line instead of a stack trace: Claude Code missing (with the install link), not logged in, rate limited, unreachable, or too slow to answer.
 
+## Refine, fix and explain
+
+**Refine.** Not quite right? Add `# ` and what to change after the command, then press your key again:
+
+```
+$ grep -rn TODO . # only shell files, skip tests     <Ctrl+G>
+$ rg -n --glob '*.sh' --glob '!*test*' TODO .
+```
+
+**Fix the last command.** Run `hey-shell --fix` right after a command fails. It takes the command and its exit status from your shell history, asks for a corrected version, explains what was wrong, and leaves the fix on your next prompt like `hse` does. Nothing is re-run. You can also pass a command: `hey-shell --fix "gti status"`.
+
+**Explain a command.** `hey-shell -w "<command>"` (`--what`) explains a command you found or were given, with its risk and failure check, before you decide to run it.
+
+Explanations come in the language of your request; `--what` and `--fix` use your locale (`LANG`), so a `tr_TR` system gets Turkish.
+
+**History.** Every request and the command it produced is logged on your machine in `~/.local/state/hey-shell/history.tsv`. `hey-shell --history` shows the last 20, and `hey-shell --history docker` filters them. Set `HEY_SHELL_HISTORY=0` to turn it off.
+
+## Fits your setup
+
+Each request also tells Claude which modern tools you have installed (such as `rg`, `fd`, `jq`, `gh`) and what the current folder is: the package manager from its lockfile (npm, pnpm, yarn, bun, cargo, uv, poetry and others), a Makefile and its targets, `package.json` script names, docker compose, and the git branch. So you get `rg` instead of `grep -r` when you have it, and `pnpm run test` in a pnpm project. Only names are sent, never file contents. Set `HEY_SHELL_CONTEXT=0` to turn it off.
+
 ## Predict failures (on by default)
 
 `hsc "<command>"` (`hey-shell -c`) predicts whether a command would fail, without running it. The same prediction runs automatically after `hse` and on the key binding; set `HEY_SHELL_CHECK=0` in your rc file to turn that off. Example, from a shell that is not in a tmux session:
@@ -131,6 +156,8 @@ It is a prediction, not a guarantee. It cannot know whether a file exists, wheth
 | `HEY_SHELL_MODEL` | `haiku` | model passed to `claude --model` |
 | `HEY_SHELL_TIMEOUT` | `30` | seconds to wait for Claude before giving up |
 | `HEY_SHELL_UPDATE_CHECK` | on | `0` = no "Update available" line |
+| `HEY_SHELL_CONTEXT` | on | `0` = do not tell Claude about installed tools and the project |
+| `HEY_SHELL_HISTORY` | on | `0` = do not log requests to `~/.local/state/hey-shell/history.tsv` |
 | `HEY_SHELL_CHECK` | on | `0` turns off the failure prediction after `hse` and on the key binding |
 | `HEY_SHELL_COLOR` | `auto` | `always` or `never` overrides the terminal detection; `NO_COLOR` always wins |
 | `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
@@ -152,9 +179,9 @@ This is pattern matching, not a guarantee: it can miss risky commands and flag h
 
 ## Privacy
 
-Each request goes to Claude through your own Claude Code CLI, under your Claude Code account. hey-shell sends the text of your request, your OS, your shell name and the path of your current directory. It does not send your shell history, environment variables or files. Claude Code itself may add context of its own, such as your Claude Code settings or memory, which is why answers sometimes mention tools you use.
+Each request goes to Claude through your own Claude Code CLI, under your Claude Code account. hey-shell sends the text of your request, your OS, your shell name and the path of your current directory, plus the names described in [Fits your setup](#fits-your-setup) (installed tools, project type, script and target names, git branch; turn off with `HEY_SHELL_CONTEXT=0`). `hey-shell --fix` also sends the command being fixed and its exit status. It does not send file contents, environment variables or the rest of your shell history. Claude Code itself may add context of its own, such as your Claude Code settings or memory, which is why answers sometimes mention tools you use.
 
-The risk rating and the failure check run locally and send nothing.
+The risk rating and the failure check run locally and send nothing. Your request history stays in `~/.local/state/hey-shell/history.tsv` on your machine.
 
 ## Troubleshooting
 

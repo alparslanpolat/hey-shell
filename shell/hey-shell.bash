@@ -53,14 +53,24 @@ _hey_shell_prefill() {
 }
 
 # `hey-shell -e ...` explains, then leaves the command on the next prompt, ready to edit or run.
+# `hey-shell --fix` does the same for a corrected version of your last command (taken from history, with its
+# exit status), unless you pass a command.
 hey-shell() {
+  local last_status=$? last='' line
   case "${1:-}" in
-    -e|--explain)
+    -e|--explain|--fix)
       local out names='' color=never cmdfile
+      if [ "$1" = --fix ] && [ $# = 1 ]; then
+        while IFS= read -r line; do
+          line=${line#"${line%%[![:space:]]*}"}
+          case $line in *--fix*|'') ;; *) last=$line ;; esac
+        done <<< "$(fc -ln -10 -1 2>/dev/null)"
+      fi
       [ -t 1 ] && color=always
       [ "${HEY_SHELL_CHECK:-1}" = 0 ] || names=$(compgen -A alias -A function)
       cmdfile=$(mktemp)
-      out=$(HEY_SHELL_COLOR=$color HEY_SHELL_CMD_FILE=$cmdfile HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || { local st=$?; rm -f "$cmdfile"; return $st; }
+      out=$(HEY_SHELL_LAST_CMD=$last HEY_SHELL_LAST_STATUS=${last:+$last_status} HEY_SHELL_COLOR=$color \
+        HEY_SHELL_CMD_FILE=$cmdfile HEY_SHELL_KNOWN_NAMES=$names command hey-shell "$@") || { local st=$?; rm -f "$cmdfile"; return $st; }
       printf '%s\n' "$out"
       _hey_shell_prefill "$(cat "$cmdfile")"
       rm -f "$cmdfile" ;;

@@ -19,7 +19,7 @@ printf '%s\n' "$@" > "$FAKE_PROMPT_FILE.args"
 exit "${FAKE_STATUS:-0}"
 FAKE
 chmod +x "$tmp/claude"
-export HEY_SHELL_CLAUDE="$tmp/claude" FAKE_PROMPT_FILE="$tmp/prompt" HEY_SHELL_UPDATE_CHECK=0
+export HEY_SHELL_CLAUDE="$tmp/claude" FAKE_PROMPT_FILE="$tmp/prompt" HEY_SHELL_UPDATE_CHECK=0 XDG_STATE_HOME="$tmp/state"
 
 # expect <name> <substring> <args...>: runs hey-shell with the FAKE_* env already set, checks stdout+stderr
 expect() {
@@ -177,6 +177,58 @@ expect "hse -h" "usage: hey-shell [options] <request>" --explain -h
 expect "hsr -V" "hey-shell " -r -V
 got=$("$tmp/clone/bin/hey-shell" -e -U 2>&1); total=$((total + 1))
 case $got in *"is up to date"*) ;; *) echo "FAIL hse -U should update: $got"; fail=$((fail + 1)) ;; esac
+
+# prompt_has <name> <substring>: checks the prompt the last run sent to Claude
+prompt_has() {
+  total=$((total + 1))
+  case $(cat "$tmp/prompt") in *"$2"*) ;; *) printf 'FAIL %s\n  wanted in prompt: %s\n' "$1" "$2"; fail=$((fail + 1)) ;; esac
+}
+
+# project awareness: tools, project type, scripts, make targets (names only); HEY_SHELL_CONTEXT=0 turns it off
+mkdir -p "$tmp/proj"
+printf 'build:\n\tgo build\ntest: build\n\tgo test\nX = 1\n' > "$tmp/proj/Makefile"
+: > "$tmp/proj/pnpm-lock.yaml"; : > "$tmp/proj/compose.yaml"
+(cd "$tmp/proj" && FAKE_OUT='ls' "$bin" list files >/dev/null 2>&1)
+prompt_has "context project" "Project here: pnpm, docker compose (compose.yaml), Makefile."
+prompt_has "context make targets" "make targets: build, test."
+(cd "$tmp/proj" && FAKE_OUT='ls' HEY_SHELL_CONTEXT=0 "$bin" list files >/dev/null 2>&1)
+total=$((total + 1))
+case $(cat "$tmp/prompt") in *"Project here"*) echo "FAIL HEY_SHELL_CONTEXT=0 must leave the project out"; fail=$((fail + 1)) ;; esac
+
+# refine: "<command> # <change>"
+FAKE_OUT='rg TODO -g "*.sh"' "$bin" "grep -rn TODO . # only shell files" >/dev/null 2>&1
+prompt_has "refine" "Start from this command (or request): grep -rn TODO . -- and change it like this: only shell files"
+
+# --what: explains a given command, keeps it as is, no prefill, no "review" note
+out=$(FAKE_OUT='Unpacks the archive into /opt.' HEY_SHELL_CMD_FILE="$tmp/what.cmd" "$bin" -w "tar -xzf a.tgz -C /opt" 2>&1)
+total=$((total + 1))
+case $out in *"│ \$ tar -xzf a.tgz -C /opt"*"Unpacks the archive into /opt."*) ;; *) echo "FAIL --what output: $out"; fail=$((fail + 1)) ;; esac
+total=$((total + 1))
+[ ! -s "$tmp/what.cmd" ] || { echo "FAIL --what must not prefill the prompt"; fail=$((fail + 1)); }
+LANG=tr_TR.UTF-8 FAKE_OUT='x' "$bin" -w "ls" >/dev/null 2>&1
+prompt_has "--what follows the locale" "Write the explanation in Turkish."
+
+# --fix: the given command, or the last one from the shell integration with its exit status
+FAKE_OUT='git status\n\nTypo in git.' expect "--fix label" "SUGGESTED FIX · REVIEW BEFORE RUNNING" --fix "gti status"
+prompt_has "--fix static check" "A static check says: 'gti' not found"
+FAKE_OUT='git status\n\nTypo.' HEY_SHELL_LAST_CMD='gti status' HEY_SHELL_LAST_STATUS=127 "$bin" --fix >/dev/null 2>&1
+prompt_has "--fix last command" "This command failed: gti status It exited with status 127."
+expect "--fix without a command" "no command to fix" --fix
+
+# -e explains in the request's language
+FAKE_OUT='ls\n\nx' "$bin" -e list files >/dev/null 2>&1
+prompt_has "-e language" "in the same language as the task's words"
+
+# history: logged locally, searchable, off with HEY_SHELL_HISTORY=0
+rm -rf "$tmp/state"
+FAKE_OUT='docker ps -q' "$bin" list container ids >/dev/null 2>&1
+FAKE_OUT='ls -la' HEY_SHELL_HISTORY=0 "$bin" secret request >/dev/null 2>&1
+expect "history lists requests" "list container ids" --history
+expect "history shows commands" "docker ps -q" --history docker
+total=$((total + 1))
+case $("$bin" --history) in *"secret request"*) echo "FAIL HEY_SHELL_HISTORY=0 must not log"; fail=$((fail + 1)) ;; esac
+total=$((total + 1))
+[ -z "$("$bin" --history nomatch)" ] || { echo "FAIL --history filter should hide other requests"; fail=$((fail + 1)); }
 
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]

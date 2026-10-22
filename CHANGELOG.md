@@ -2,6 +2,16 @@
 
 The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints it.
 
+## 0.4.0
+
+- Fits your setup: Claude is told which modern tools you have (`rg`, `fd`, `jq`, ...) and what the folder is (package manager, Makefile targets, npm scripts, docker compose, git branch). Names only; `HEY_SHELL_CONTEXT=0` turns it off.
+- Refine: `<command> # <change>` and the key, or `hey-shell "<command> # <change>"`.
+- `hey-shell --fix`: a corrected version of your last failed command, left on your next prompt.
+- `hey-shell -w` / `--what`: explains a command you already have.
+- `hey-shell --history [text]`: your recent requests, logged locally (`HEY_SHELL_HISTORY=0` turns it off).
+- Explanations come in the language of your request; `--what` and `--fix` follow your locale.
+- The version is shown in the banner.
+
 ## 0.3.0
 
 - The command is shown in a labeled box (`SUGGESTED COMMAND · REVIEW BEFORE RUNNING`), after `hse` and under the prompt on the key binding.

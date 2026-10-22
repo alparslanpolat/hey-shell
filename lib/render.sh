@@ -46,16 +46,20 @@ hey_shell_status() {
   fi
 }
 
-# hey_shell_render_command <command>: the label, then the command after a "$ " in a rounded box. The box is
-# 78 columns wide, or the terminal width ($COLUMNS) when that is narrower; long commands wrap inside it.
+# hey_shell_render_command <command> [label] [note]: "label · note" (default SUGGESTED COMMAND · REVIEW BEFORE
+# RUNNING; an empty note leaves it out), then the command after a "$ " in a rounded box. The box is 78 columns wide, or the terminal width
+# ($COLUMNS) when that is narrower; long commands wrap inside it.
 hey_shell_render_command() {
-  local width=78 inner line bar='' pre='$ ' i=2 h
+  local width=78 inner line bar='' pre='$ ' i=2 h label=${2:-SUGGESTED COMMAND} note='REVIEW BEFORE RUNNING'
+  [ $# -lt 3 ] || note=$3
   case ${COLUMNS:-} in ''|*[!0-9]*) ;; *) [ "$COLUMNS" -ge 78 ] || width=$COLUMNS ;; esac
   [ "$width" -ge 24 ] || width=24
   inner=$((width - 6))
   h=$(printf '\342\224\200') # "─" as bytes: bash 3.2 mangles multibyte literals in some locales
   while [ "$i" -lt "$width" ]; do bar="$bar$h"; i=$((i + 1)); done
-  printf '%sSUGGESTED COMMAND%s %s·%s %sREVIEW BEFORE RUNNING%s\n' "$C_BRAND" "$C_OFF" "$C_MUTED" "$C_OFF" "$C_BRAND" "$C_OFF"
+  printf '%s%s%s' "$C_BRAND" "$label" "$C_OFF"
+  [ -z "$note" ] || printf ' %s·%s %s%s%s' "$C_MUTED" "$C_OFF" "$C_BRAND" "$note" "$C_OFF"
+  printf '\n'
   printf '%s╭%s╮%s\n' "$C_MUTED" "$bar" "$C_OFF"
   while IFS= read -r line; do
     printf '%s│%s %s%s%s%s%*s %s│%s\n' "$C_MUTED" "$C_OFF" "$C_BRAND" "$pre" "$C_CMD" "$line$C_OFF" $((inner - ${#line})) '' "$C_MUTED" "$C_OFF"
@@ -64,10 +68,10 @@ hey_shell_render_command() {
   printf '%s╰%s╯%s\n' "$C_MUTED" "$bar" "$C_OFF"
 }
 
-# hey_shell_render_explain <command> <explanation> <warning>
+# hey_shell_render_explain <command> <explanation> <warning> [label] [note]
 hey_shell_render_explain() {
   printf '\n'
-  hey_shell_render_command "$1"
+  hey_shell_render_command "$1" "${4:-SUGGESTED COMMAND}" "${5:-}"
   printf '\n'
   [ -z "$2" ] || printf '%s\n' "$2" | fold -s -w 78 | sed 's/[[:space:]]*$//'
   [ -z "$3" ] || printf '%sWarning: %s%s\n' "$C_AMBER" "$(printf '%s' "$3" | fold -s -w 69 | sed 's/[[:space:]]*$//')" "$C_OFF"
