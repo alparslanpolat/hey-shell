@@ -2,6 +2,12 @@
 
 ![hey-shell demo: finding which folders use the most space, freeing a port, refining a find command with a # note, and fixing a typo with hsf](docs/assets/demo.gif)
 
+**Contents**
+
+- **Start:** [At a glance](#at-a-glance) · [Install](#install) · [Choose your agent](#choose-your-agent) · [Update](#update) · [Uninstall](#uninstall)
+- **Use:** [Explain a command](#explain-a-command-first) · [Refine, fix and explain](#refine-fix-and-explain) · [Fits your setup](#fits-your-setup) · [Predict failures](#predict-failures-on-by-default)
+- **Reference:** [Configuration](#configuration) · [Safety](#safety) · [Privacy](#privacy) · [Troubleshooting](#troubleshooting) · [Contributing](#contributing) · [License](#license)
+
 Type what you want in plain language, press a key (**Ctrl+G** by default, configurable), and your prompt line is replaced with the shell command. It is **never executed for you**: you review, edit and press Enter.
 
 ```
