@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hey-shell</title>
-<meta name="description" content="Type what you need in plain language, press your shortcut, review the shell command. Nothing runs automatically. bash + zsh, powered by Claude Code.">
+<meta name="description" content="Type what you need in plain language, press your shortcut, review the shell command. Nothing runs automatically. bash + zsh, with Claude Code, Codex CLI or Gemini CLI.">
 <meta property="og:title" content="hey-shell: your words, shell commands">
 <meta property="og:description" content="Type what you need, press your shortcut, review the command, hit Enter when ready.">
 <meta property="og:image" content="https://alparslanpolat.github.io/hey-shell/assets/preview.png">
@@ -74,8 +74,18 @@ kbd.sm { font-size: 15px; padding: 2px 8px; border-width: 1px; }
 code.cmd { font: 22px var(--mono); background: #1a1f1c; border: 1px solid var(--line); border-radius: 10px; padding: 16px 24px; white-space: nowrap; }
 code.cmd b { color: var(--lime); font-weight: 500; }
 
+.more { padding: 72px 0 0; }
+.more h2, .agents h2, .install h2 { font-size: 34px; letter-spacing: -.02em; }
+.more > p, .agents > p { margin-top: 10px; color: var(--muted); font-size: 19px; max-width: 760px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 28px; }
+.card { border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; background: rgba(255,255,255,.015); }
+.card h3 { font: 600 19px var(--mono); color: var(--lime); }
+.card p { margin-top: 8px; color: var(--muted); font-size: 17px; }
+.card code, .agents code, .install code { font: 15px var(--mono); color: var(--text); background: #1a1f1c; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+.agents { padding: 72px 0 0; }
+.agent-list { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 24px; }
+.agent-list .chip b { color: var(--lime); font-weight: 500; }
 .install { padding: 72px 0 24px; }
-.install h2 { font-size: 34px; letter-spacing: -.02em; }
 .install > p { margin-top: 10px; color: var(--muted); font-size: 19px; }
 .block { position: relative; margin-top: 26px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px 28px; font: 18px/1.9 var(--mono); overflow-x: auto; }
 .block span { color: var(--lime); user-select: none; }
@@ -91,6 +101,7 @@ footer a:hover { color: var(--lime); }
   .wrap { padding: 0 22px; }
   .hero { grid-template-columns: 1fr; padding-top: 48px; }
   .steps { grid-template-columns: 1fr; gap: 36px; }
+  .grid { grid-template-columns: 1fr; }
   .cta { flex-direction: column; align-items: flex-start; }
   code.cmd { white-space: normal; word-break: break-all; font-size: 17px; }
   .body { font-size: 20px; padding: 28px 22px 34px; }
@@ -114,7 +125,7 @@ footer a:hover { color: var(--lime); }
 <header>
   <div class="wrap">
     <a class="brand" href="#top" aria-label="hey-shell home"><svg><use href="#logo"/></svg>hey-shell</a>
-    <nav><a href="#how">How it works</a><a href="https://github.com/alparslanpolat/hey-shell">GitHub</a></nav>
+    <nav><a href="#how">How it works</a><a href="#agents">Agents</a><a href="https://github.com/alparslanpolat/hey-shell">GitHub</a></nav>
   </div>
 </header>
 
@@ -124,7 +135,7 @@ footer a:hover { color: var(--lime); }
       <h1>Your words.<span>Shell commands.</span></h1>
       <p class="lead">Type what you need. Press your shortcut.<br>Review the command. <b>Hit Enter when ready.</b></p>
       <div class="chips"><span class="chip">bash + zsh</span><span class="chip">Linux · WSL2 · macOS</span></div>
-      <p class="req">Requires Claude Code CLI</p>
+      <p class="req">Works with Claude Code, Codex CLI or Gemini CLI</p>
     </div>
     <div class="term" role="img" aria-label="Terminal: typing 'show running docker container ids', pressing Ctrl+G, and getting 'docker ps -q' on the prompt, not executed">
       <div class="bar"><i></i><i></i><i></i><em>hey-shell — zsh</em></div>
@@ -143,6 +154,26 @@ footer a:hover { color: var(--lime); }
     <div class="step"><div class="num">03</div><h3>Review &amp; run</h3><p>The risk and a failure check show under the command. Read or edit it, then press Enter. Nothing runs automatically.</p></div>
   </section>
 
+  <section class="more" id="more">
+    <h2>When you need more</h2>
+    <p>None of this is needed for the main flow. It is there when a command is not quite right, or fails.</p>
+    <div class="grid">
+      <div class="card"><h3>Refine it</h3><p>Not quite right? Add <code># only .ts files</code> after the command and press your shortcut again. It changes the command instead of starting over.</p></div>
+      <div class="card"><h3>Fix a failed command</h3><p>Run <code>hsf</code> right after a command fails. You get a corrected version on your next prompt, with what was wrong. Nothing is re-run.</p></div>
+      <div class="card"><h3>Explain any command</h3><p><code>hse &lt;request&gt;</code> adds a short explanation, and <code>hsw "&lt;command&gt;"</code> explains a command you found somewhere, before you run it.</p></div>
+      <div class="card"><h3>Fits your setup</h3><p>The agent is told which tools you have (<code>rg</code>, <code>fd</code>, <code>jq</code>…) and what the project is (pnpm, Makefile targets, compose). Names only, never file contents.</p></div>
+      <div class="card"><h3>Risk you can see</h3><p>Deletes, force-pushes, overwrites, cloud deletes and <code>curl | sh</code> are flagged in amber or red. The README says what pattern matching cannot catch.</p></div>
+      <div class="card"><h3>A check before you run</h3><p>Missing programs, syntax errors and wrong context (no git repo, no tmux server) show as <code>Check: LIKELY FAIL</code>. It never runs the command.</p></div>
+    </div>
+  </section>
+
+  <section class="agents" id="agents">
+    <h2>Choose your agent</h2>
+    <p>hey-shell asks the AI agent CLI you already use and are logged in to. Claude Code is the default; switch with one flag. Everything else works the same.</p>
+    <div class="agent-list"><span class="chip"><b>claude</b> · Claude Code</span><span class="chip"><b>codex</b> · OpenAI Codex CLI</span><span class="chip"><b>gemini</b> · Google Gemini CLI</span></div>
+    <div class="block"><span>$ </span>~/hey-shell/install.sh --agent codex</div>
+  </section>
+
   <section class="cta">
     <p><svg><use href="#mark"/></svg>Your terminal. Your shortcut.</p>
     <code class="cmd">~/hey-shell/install.sh <b>--key alt+o</b></code>
@@ -150,7 +181,7 @@ footer a:hover { color: var(--lime); }
 
   <section class="install" id="install">
     <h2>Install</h2>
-    <p>Clone it, run the installer, and pick your key and short aliases. Works with the Claude Code CLI you already have.</p>
+    <p>Clone it, run the installer, and pick your key and short aliases. Add <code>--agent codex</code> or <code>--agent gemini</code> to use those instead of Claude Code.</p>
     <div class="block">
       <button class="copy" type="button" data-copy>Copy</button>
       <div id="install-cmd"><span>$ </span>git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell<br><span>$ </span>~/hey-shell/install.sh<br><span>$ </span>source ~/.zshrc</div>
@@ -162,7 +193,7 @@ footer a:hover { color: var(--lime); }
 
 <footer>
   <div class="wrap">
-    <span>hey-shell · MIT license</span>
+    <span>hey-shell · MIT license · <a href="https://github.com/alparslanpolat/hey-shell/blob/main/CHANGELOG.md">changelog</a></span>
     <a href="https://github.com/alparslanpolat/hey-shell">github.com/alparslanpolat/hey-shell</a>
   </div>
 </footer>
