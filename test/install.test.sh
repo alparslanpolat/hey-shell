@@ -61,6 +61,20 @@ ok 'bash -n "$brc"'                                            "bash: the rc fil
 HOME="$H" SHELL=/bin/bash "$installer" --shell bash --uninstall </dev/null >/dev/null 2>&1
 ok '[ "$(cat "$brc")" = "export B=1" ]'                        "bash: uninstall leaves the rc file as it was"
 
+# the agent: written only when not claude, kept on re-runs that do not name one
+new_home; run >/dev/null
+ok '[ "$(count "HEY_SHELL_AGENT")" = 0 ]'                      "claude is the default and needs no line"
+run --agent codex >/dev/null
+ok '[ "$(count "^export HEY_SHELL_AGENT=\"codex\"")" = 1 ]'     "--agent codex is written"
+run --key alt+o >/dev/null
+ok '[ "$(count "^export HEY_SHELL_AGENT=\"codex\"")" = 1 ] && [ "$(count "alt+o")" = 1 ]' "changing the key keeps the agent"
+run --agent gemini >/dev/null
+ok '[ "$(count "HEY_SHELL_AGENT")" = 1 ] && [ "$(count "^export HEY_SHELL_AGENT=\"gemini\"")" = 1 ]' "--agent gemini replaces it"
+run --agent claude >/dev/null
+ok '[ "$(count "HEY_SHELL_AGENT")" = 0 ]'                      "--agent claude removes the line"
+out=$(run --agent gpt)
+ok '[[ $out == *"unknown agent"* ]]'                           "an unknown agent is refused"
+
 new_home; run >/dev/null; out=$(run)
 ok '[[ $out == *"already installed"* ]]'                       "plain re-run says already installed"
 

@@ -2,6 +2,10 @@
 
 The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints it.
 
+## Unreleased
+
+- Choose your agent: `HEY_SHELL_AGENT=codex` or `gemini` (or `install.sh --agent codex`) uses the Codex CLI or the Gemini CLI instead of Claude Code. Errors, the install hint and the login hint follow the agent.
+
 ## 0.5.0
 
 - `hse` and `hsf` no longer need hey-shell on your `PATH`: the shell integration calls its own copy.

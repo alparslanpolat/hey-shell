@@ -14,7 +14,7 @@ SUGGESTED COMMAND · REVIEW BEFORE RUNNING
 Risk: LOW · Check: No known issues
 ```
 
-Works in bash and zsh on Linux, WSL2 and macOS. Uses the [Claude Code](https://claude.com/claude-code) CLI (`claude -p`), so it must be installed and logged in.
+Works in bash and zsh on Linux, WSL2 and macOS. The commands come from the AI agent CLI you already use and are logged in to: [Claude Code](https://claude.com/claude-code) by default, or the [Codex CLI](https://github.com/openai/codex) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) (see [Choose your agent](#choose-your-agent)).
 
 ## At a glance
 
@@ -64,6 +64,24 @@ It then adds one marked block to your rc file that sets the key, puts `hey-shell
 
 A plugin cannot bind keys in your shell by itself, so `/hey-shell:install` runs the installer above. The plugin also adds `/hey-shell:sh <request>` to get a command inside Claude Code.
 
+## Choose your agent
+
+hey-shell asks Claude Code by default. To use the Codex CLI or the Gemini CLI instead, install and log in to it, then re-run the installer with `--agent`:
+
+```bash
+~/hey-shell/install.sh --agent codex     # or gemini; --agent claude goes back to the default
+```
+
+This writes `export HEY_SHELL_AGENT=codex` into the hey-shell block of your rc file; you can also set it yourself. Everything else works the same with every agent: the key, `hse`, refine, `hsf`, the risk rating and the failure check. Only the text of the answer comes from the agent.
+
+| Agent | Called as | Model |
+| --- | --- | --- |
+| `claude` (default) | `claude -p`, with no tools, no MCP servers and no saved session | `haiku`, or `HEY_SHELL_MODEL` |
+| `codex` | `codex exec`, read-only sandbox, `--ephemeral` (no saved session) | the CLI's default, or `HEY_SHELL_MODEL` |
+| `gemini` | `gemini -p … -o text` | the CLI's default, or `HEY_SHELL_MODEL` |
+
+The test suite checks the exact command line each agent gets; the commands' quality has been measured with Claude Haiku (see CONTRIBUTING), not yet with the others.
+
 ## Update
 
 ```bash
@@ -106,7 +124,7 @@ Placeholders such as `<branch-name>` are left in the prefilled line for you to r
 
 Generated commands favor portable, read-only forms and avoid `sudo` and destructive flags unless you ask for them in the request.
 
-If something goes wrong you get one actionable line instead of a stack trace: Claude Code missing (with the install link), not logged in, rate limited, unreachable, or too slow to answer.
+If something goes wrong you get one actionable line instead of a stack trace: the agent's CLI missing (with the install link), not logged in, rate limited, unreachable, or too slow to answer.
 
 ## Refine, fix and explain
 
@@ -127,7 +145,7 @@ Explanations come in the language of your request; `--what` and `--fix` use your
 
 ## Fits your setup
 
-Each request also tells Claude which modern tools you have installed (such as `rg`, `fd`, `jq`, `gh`) and what the current folder is: the package manager from its lockfile (npm, pnpm, yarn, bun, cargo, uv, poetry and others), a Makefile and its targets, `package.json` script names, docker compose, and the git branch. So you get `rg` instead of `grep -r` when you have it, and `pnpm run test` in a pnpm project. Only names are sent, never file contents. Set `HEY_SHELL_CONTEXT=0` to turn it off.
+Each request also tells the agent which modern tools you have installed (such as `rg`, `fd`, `jq`, `gh`) and what the current folder is: the package manager from its lockfile (npm, pnpm, yarn, bun, cargo, uv, poetry and others), a Makefile and its targets, `package.json` script names, docker compose, and the git branch. So you get `rg` instead of `grep -r` when you have it, and `pnpm run test` in a pnpm project. Only names are sent, never file contents. Set `HEY_SHELL_CONTEXT=0` to turn it off.
 
 ## Predict failures (on by default)
 
@@ -160,15 +178,16 @@ It is a prediction, not a guarantee. It cannot know whether a file exists, wheth
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `HEY_SHELL_MODEL` | `haiku` | model passed to `claude --model` |
-| `HEY_SHELL_TIMEOUT` | `30` | seconds to wait for Claude before giving up |
+| `HEY_SHELL_AGENT` | `claude` | the agent CLI that answers: `claude`, `codex` or `gemini` (see [Choose your agent](#choose-your-agent)) |
+| `HEY_SHELL_MODEL` | `haiku` for claude, the CLI's default for codex and gemini | model passed to the agent CLI |
+| `HEY_SHELL_TIMEOUT` | `30` | seconds to wait for the agent before giving up |
 | `HEY_SHELL_UPDATE_CHECK` | on | `0` = no "Update available" line |
-| `HEY_SHELL_CONTEXT` | on | `0` = do not tell Claude about installed tools and the project |
+| `HEY_SHELL_CONTEXT` | on | `0` = do not tell the agent about installed tools and the project |
 | `HEY_SHELL_HISTORY` | on | `0` = do not log requests to `~/.local/state/hey-shell/history.tsv` |
 | `HEY_SHELL_CHECK` | on | `0` turns off the failure prediction after `hse` and on the key binding |
 | `HEY_SHELL_COLOR` | `auto` | `always` or `never` overrides the terminal detection; `NO_COLOR` always wins |
 | `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
-| `HEY_SHELL_CLAUDE` | `claude` | the CLI to call; set it for a custom path (the tests use it to inject a fake) |
+| `HEY_SHELL_CLI` | `claude`, `codex` or `gemini` | the agent's executable, for a custom path (the tests use it to inject a fake; `HEY_SHELL_CLAUDE` still works) |
 
 Set them with `export` before the hey-shell block in your rc file.
 
@@ -198,7 +217,7 @@ Every reply is also validated before it reaches your prompt: terminal control ch
 
 ## Privacy
 
-Each request goes to Claude through your own Claude Code CLI, under your Claude Code account. hey-shell sends the text of your request, your OS, your shell name and the path of your current directory, plus the names described in [Fits your setup](#fits-your-setup) (installed tools, project type, script and target names, git branch; turn off with `HEY_SHELL_CONTEXT=0`). `hey-shell --fix` also sends the command being fixed and its exit status. It does not send file contents, environment variables or the rest of your shell history. Claude Code itself may add context of its own, such as your Claude Code settings or memory, which is why answers sometimes mention tools you use.
+Each request goes to your chosen agent through its own CLI, under your account with that provider: Anthropic for Claude Code, OpenAI for Codex, Google for Gemini. hey-shell sends the text of your request, your OS, your shell name and the path of your current directory, plus the names described in [Fits your setup](#fits-your-setup) (installed tools, project type, script and target names, git branch; turn off with `HEY_SHELL_CONTEXT=0`). `hey-shell --fix` also sends the command being fixed and its exit status. It does not send file contents, environment variables or the rest of your shell history. The agent CLI may add context of its own, such as its settings or memory files, which is why answers sometimes mention tools you use.
 
 The risk rating and the failure check run locally and send nothing. Your request history stays in `~/.local/state/hey-shell/history.tsv` on your machine.
 
@@ -210,7 +229,7 @@ The risk rating and the failure check run locally and send nothing. Your request
 
 **Ctrl+G does nothing.** Check the key is bound: `bind -X | grep hey_shell` in bash, `bindkey | grep hey_shell` in zsh. If nothing is listed, open a new terminal. If another tool uses the key, pick a different one with `~/hey-shell/install.sh --key ctrl+o`.
 
-**"thinking..." and then an error.** Claude Code must be installed and logged in: run `claude` once and complete `/login`. A slow network can hit the timeout; raise `HEY_SHELL_TIMEOUT`.
+**"thinking..." and then an error.** The agent's CLI must be installed and logged in: run `claude` once and complete `/login` (Codex: `codex login`; Gemini: run `gemini` once and sign in). A slow network can hit the timeout; raise `HEY_SHELL_TIMEOUT`.
 
 **`hse` prints the command but does not leave it on the next prompt (bash).** Your terminal does not answer the status query the prefill uses. Copy the command from the output; in zsh this always works.
 

@@ -243,5 +243,29 @@ case $(FAKE_OUT='echo \033]0;owned\007\033[2Jhi' "$bin" say hi 2>&1) in
   *$'\033'*|*$'\007'*) echo "FAIL control characters from the reply must not reach the terminal"; fail=$((fail + 1)) ;;
 esac
 
+# other agents: the same fake stands in for codex and gemini; check the command line each one gets
+args() { tr '\n' ' ' < "$tmp/prompt.args"; }
+has_args() { # name expected-substring
+  total=$((total + 1))
+  case " $(args)" in *" $2"*) ;; *) printf 'FAIL %s\n  wanted args: %s\n  got: %s\n' "$1" "$2" "$(args)"; fail=$((fail + 1)) ;; esac
+}
+FAKE_OUT='ls' HEY_SHELL_AGENT=codex HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1
+has_args "codex: exec, no session, outside git" "exec --ephemeral --skip-git-repo-check Reply with exactly one"
+total=$((total + 1))
+case " $(args)" in *" --tools"*|*" -p "*|*" -m "*) echo "FAIL codex must not get claude flags or a model it was not given"; fail=$((fail + 1)) ;; esac
+FAKE_OUT='ls' HEY_SHELL_AGENT=codex HEY_SHELL_MODEL=gpt-5-mini HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1
+has_args "codex: model" "--skip-git-repo-check -m gpt-5-mini Reply"
+FAKE_OUT='ls' HEY_SHELL_AGENT=gemini HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1
+has_args "gemini: text output, headless prompt" "-o text -p Reply with exactly one"
+FAKE_OUT='ls' HEY_SHELL_AGENT=gemini HEY_SHELL_MODEL=flash HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1
+has_args "gemini: model" "-o text -m flash -p Reply"
+FAKE_OUT='ls -la' HEY_SHELL_AGENT=codex HEY_SHELL_CLI="$tmp/claude" expect "codex: the reply becomes the command" "ls -la" list files
+HEY_SHELL_AGENT=codex HEY_SHELL_CLI="$tmp/nope" expect "codex: missing cli" "Codex CLI not found in PATH. Install it: https://github.com/openai/codex" list files
+HEY_SHELL_AGENT=gemini HEY_SHELL_CLI="$tmp/nope" expect "gemini: missing cli" "Gemini CLI not found in PATH" list files
+FAKE_STATUS=1 FAKE_ERR="401 Unauthorized" HEY_SHELL_AGENT=codex HEY_SHELL_CLI="$tmp/claude" expect "codex: not logged in" "Run 'codex login'" list files
+FAKE_STATUS=1 FAKE_ERR="429 rate limit" HEY_SHELL_AGENT=gemini HEY_SHELL_CLI="$tmp/claude" expect "gemini: rate limited" "Gemini is rate limited" list files
+HEY_SHELL_AGENT=gpt expect "unknown agent" "unknown HEY_SHELL_AGENT 'gpt': use claude, codex or gemini" list files
+HEY_SHELL_AGENT=gpt expect "unknown agent does not block --risk" "high" -r "rm -rf build"
+
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]

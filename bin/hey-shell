@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# hey-shell: turn a plain-language request into one shell command via `claude -p`.
+# hey-shell: turn a plain-language request into one shell command, via Claude Code, Codex or Gemini CLI.
 #   hey-shell "list running container ids"   -> prints the command, never runs it
 #   hey-shell -e "restart postgres"          -> command, a short explanation, and its risk rating (long form: --explain)
 #   hey-shell "<command> # <change>"         -> the command, changed as asked (refine a generated command)
@@ -12,13 +12,15 @@
 #   hey-shell [-h]                           -> logo and usage (long form: --help; exit 2 when no request was given)
 #   hey-shell -V                             -> the version, read from .claude-plugin/plugin.json (long form: --version)
 #   hey-shell -U                             -> updates this checkout to the latest version (long form: --update)
-# Env: HEY_SHELL_MODEL (default: haiku), HEY_SHELL_TARGET (default: basename of $SHELL),
-#      HEY_SHELL_CLAUDE (default: claude; the CLI to call, also the seam the tests use),
+# Env: HEY_SHELL_AGENT (claude, codex or gemini; default: claude), HEY_SHELL_MODEL (default: haiku for claude,
+#      the CLI's own default for codex and gemini), HEY_SHELL_TARGET (default: basename of $SHELL),
+#      HEY_SHELL_CLI (the agent's executable, default: claude/codex/gemini; also the seam the tests use;
+#      HEY_SHELL_CLAUDE still works for claude),
 #      HEY_SHELL_CHECK (default: on; 0 = do not predict failure after --explain and on the key binding),
 #      HEY_SHELL_COLOR (auto|always|never; NO_COLOR also turns color off),
-#      HEY_SHELL_TIMEOUT (default: 30; seconds to wait for Claude),
+#      HEY_SHELL_TIMEOUT (default: 30; seconds to wait for the agent),
 #      HEY_SHELL_UPDATE_CHECK (default: on; 0 = no "Update available" line),
-#      HEY_SHELL_CONTEXT (default: on; 0 = do not tell Claude about installed tools and the project),
+#      HEY_SHELL_CONTEXT (default: on; 0 = do not tell the agent about installed tools and the project),
 #      HEY_SHELL_HISTORY (default: on; 0 = do not log requests to ~/.local/state/hey-shell/history.tsv)
 set -euo pipefail
 
@@ -36,10 +38,41 @@ source "$root/lib/update.sh"
 # shellcheck source=../lib/context.sh
 source "$root/lib/context.sh"
 
-claude_bin="${HEY_SHELL_CLAUDE:-claude}"
 out=""
 
 die() { echo "hey-shell: $1" >&2; exit 1; }
+
+# The agent CLI that answers. Each one only has to print text for a prompt; validation, risk, check, context
+# and the shell integration are shared.
+agent="${HEY_SHELL_AGENT:-claude}"
+case $agent in
+  claude) agent_name=Claude agent_bin="${HEY_SHELL_CLI:-${HEY_SHELL_CLAUDE:-claude}}"
+          agent_install="Claude Code CLI not found in PATH. Install it: https://claude.com/claude-code"
+          agent_login="Claude Code is not logged in. Run 'claude' once, complete /login, then try again" ;;
+  codex)  agent_name=Codex agent_bin="${HEY_SHELL_CLI:-codex}"
+          agent_install="Codex CLI not found in PATH. Install it: https://github.com/openai/codex"
+          agent_login="Codex is not logged in. Run 'codex login', then try again" ;;
+  gemini) agent_name=Gemini agent_bin="${HEY_SHELL_CLI:-gemini}"
+          agent_install="Gemini CLI not found in PATH. Install it: https://github.com/google-gemini/gemini-cli"
+          agent_login="Gemini CLI is not signed in. Run 'gemini' once and sign in, then try again" ;;
+  *) agent_name='' ;; # reported only when a request needs the agent, so --risk, --help etc. still work
+esac
+
+# agent_command <prompt>: sets agent_cmd to the agent CLI's command line for one text-only answer
+agent_command() {
+  case $agent in
+    claude) # no tools or MCP servers, and no saved session cluttering `claude --resume`
+      agent_cmd=("$agent_bin" -p --model "${HEY_SHELL_MODEL:-haiku}" --tools "" --strict-mcp-config --no-session-persistence "$1") ;;
+    codex) # exec is read-only by default; --ephemeral saves no session; it may run outside a git repository
+      agent_cmd=("$agent_bin" exec --ephemeral --skip-git-repo-check)
+      [ -z "${HEY_SHELL_MODEL:-}" ] || agent_cmd+=(-m "$HEY_SHELL_MODEL")
+      agent_cmd+=("$1") ;;
+    gemini) # headless: -p answers once and exits; -o text prints only the answer
+      agent_cmd=("$agent_bin" -o text)
+      [ -z "${HEY_SHELL_MODEL:-}" ] || agent_cmd+=(-m "$HEY_SHELL_MODEL")
+      agent_cmd+=(-p "$1") ;;
+  esac
+}
 
 # The update notice on stderr, so output that scripts and the key binding capture stays clean. Only on a
 # terminal: the key binding shows it through --status instead.
@@ -55,7 +88,7 @@ log_history() {
     "$(printf '%s' "$2" | tr '\t\n' '  ')" >> "$history_file" 2>/dev/null || true
 }
 
-# validate_command <text>: sets $command_line to the command in Claude's reply, or exits with a clear message.
+# validate_command <text>: sets $command_line to the command in the agent's reply, or exits with a clear message.
 # Drops terminal control characters (a reply must not be able to drive your terminal), a leading "$ " prompt
 # and wrapping backticks, and skips an intro line such as "Here is the command:"; lines ending in a backslash
 # continue the command. Refuses prose, several separate
@@ -68,46 +101,46 @@ validate_command() {
   case $first in [A-Z]*' '*:) # an intro such as "Here is the command:" before the command itself
     [ "$(printf '%s\n' "$text" | wc -l)" -gt 1 ] && { text="$(printf '%s\n' "$text" | sed '1d')"; first="$(printf '%s\n' "$text" | head -1)"; } ;;
   esac
-  [ -n "$first" ] || die "Claude returned an empty reply. Try rephrasing the request"
+  [ -n "$first" ] || die "$agent_name returned an empty reply. Try rephrasing the request"
   case $first in
     Sure*|Here*|"I "*|"I'"*|Sorry*|Unfortunately*|"As an"*|"You can"*|"To "*|[A-Z]*' '*:)
-      die "Claude answered in prose instead of a command (\"$(printf '%s' "$first" | cut -c1-60)...\"). Try rephrasing the request" ;;
+      die "$agent_name answered in prose instead of a command (\"$(printf '%s' "$first" | cut -c1-60)...\"). Try rephrasing the request" ;;
   esac
   if [ "$(printf '%s\n' "$text" | wc -l)" -gt 1 ] && printf '%s\n' "$text" | sed '$d' | grep -qv '\\$'; then
-    die "Claude returned several commands instead of one. Try a narrower request, or join the steps with && yourself"
+    die "$agent_name returned several commands instead of one. Try a narrower request, or join the steps with && yourself"
   fi
-  [ "${#text}" -le 2000 ] || die "Claude returned an unusually long reply (${#text} characters). Try a narrower request"
+  [ "${#text}" -le 2000 ] || die "$agent_name returned an unusually long reply (${#text} characters). Try a narrower request"
   command_line=$text
 }
 
-# Turn a failed `claude -p` run into one actionable line.
+# Turn a failed agent run into one actionable line.
 explain_failure() {
   local text first
   text="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
   case $text in
     *"/login"*|*"not logged in"*|*"invalid api key"*|*authentication*|*unauthorized*|*401*)
-      die "Claude Code is not logged in. Run 'claude' once, complete /login, then try again" ;;
+      die "$agent_login" ;;
     *"rate limit"*|*"usage limit"*|*429*|*overloaded*|*529*)
-      die "Claude is rate limited or overloaded right now. Wait a moment and try again" ;;
+      die "$agent_name is rate limited or overloaded right now. Wait a moment and try again" ;;
     *enotfound*|*econnrefused*|*etimedout*|*"fetch failed"*|*"could not connect"*|*"unable to connect"*|*network*)
-      die "Could not reach the Claude API. Check your internet connection or proxy" ;;
+      die "Could not reach the $agent_name API. Check your internet connection or proxy" ;;
   esac
   first="$(printf '%s' "$1" | sed '/^[[:space:]]*$/d' | head -1)"
-  die "claude failed${first:+: $first}"
+  die "$agent failed${first:+: $first}"
 }
 
-# ask_claude <prompt>: sets $out, or exits with a clear message. Gives up after HEY_SHELL_TIMEOUT seconds.
-ask_claude() {
+# ask_agent <prompt>: sets $out, or exits with a clear message. Gives up after HEY_SHELL_TIMEOUT seconds.
+ask_agent() {
   local outf errf markf status=0 err pid limit="${HEY_SHELL_TIMEOUT:-30}"
   case $limit in ''|*[!0-9]*|0) die "HEY_SHELL_TIMEOUT must be a whole number of seconds, like 30" ;; esac
-  command -v "$claude_bin" >/dev/null || die "Claude Code CLI not found in PATH. Install it: https://claude.com/claude-code"
+  [ -n "$agent_name" ] || die "unknown HEY_SHELL_AGENT '$agent': use claude, codex or gemini"
+  command -v "$agent_bin" >/dev/null || die "$agent_install"
   outf="$(mktemp)" errf="$(mktemp)" markf="$(mktemp)"
   rm -f "$markf"
-  # text only: no tools or MCP servers, and no saved session cluttering `claude --resume`
-  "$claude_bin" -p --model "${HEY_SHELL_MODEL:-haiku}" --tools "" --strict-mcp-config --no-session-persistence \
-    "$1" >"$outf" 2>"$errf" &
+  agent_command "$1"
+  "${agent_cmd[@]}" </dev/null >"$outf" 2>"$errf" &
   pid=$!
-  # watchdog: checks once a second, so it never outlives claude by more than a second
+  # watchdog: checks once a second, so it never outlives the agent by more than a second
   ( i=0
     while [ "$i" -lt "$limit" ]; do sleep 1; kill -0 "$pid" 2>/dev/null || exit 0; i=$((i + 1)); done
     : > "$markf"; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 &
@@ -116,11 +149,11 @@ ask_claude() {
   rm -f "$outf" "$errf"
   if [ -e "$markf" ]; then
     rm -f "$markf"
-    die "Claude did not answer within ${limit}s. Try again, or raise HEY_SHELL_TIMEOUT"
+    die "$agent_name did not answer within ${limit}s. Try again, or raise HEY_SHELL_TIMEOUT"
   fi
   [ "$status" -eq 0 ] || explain_failure "$out
 $err"
-  [ -n "$out" ] || die "Claude returned an empty reply. Try rephrasing the request"
+  [ -n "$out" ] || die "$agent_name returned an empty reply. Try rephrasing the request"
 }
 
 # The hse, hsr and hsc aliases put -e, -r or -c first: let `hse -U`, `hsr -h` etc. reach the option itself.
@@ -226,7 +259,7 @@ esac
 
 case $mode in
   command)
-    ask_claude "Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. $context $rules $task"
+    ask_agent "Reply with exactly one $shell_name command and nothing else: no markdown, no backticks, no explanation. $context $rules $task"
     validate_command "$out"
     printf '%s\n' "$command_line"
     log_history "$request" "$command_line"
@@ -234,16 +267,16 @@ case $mode in
     exit 0 ;;
   explain)
     label='SUGGESTED COMMAND'
-    ask_claude "Reply in this exact format: $explain_format saying what the command does and what to replace; $warning_format. $language $context $rules $task" ;;
+    ask_agent "Reply in this exact format: $explain_format saying what the command does and what to replace; $warning_format. $language $context $rules $task" ;;
   fix)
     label='SUGGESTED FIX'
     hey_shell_check "$request"
     hint="${HEY_SHELL_LAST_STATUS:+ It exited with status $HEY_SHELL_LAST_STATUS.}"
     [ "$HEY_SHELL_CHECK_LEVEL" = ok ] || hint="$hint A static check says: $HEY_SHELL_CHECK_REASON."
-    ask_claude "This command failed: $request$hint Reply in this exact format: $explain_format saying what was wrong and what you changed; $warning_format. If it needs something you cannot know (a file, a service), keep the command and say so. You cannot run commands: never say that you ran or tested one. $locale_language $context $rules"
+    ask_agent "This command failed: $request$hint Reply in this exact format: $explain_format saying what was wrong and what you changed; $warning_format. If it needs something you cannot know (a file, a service), keep the command and say so. You cannot run commands: never say that you ran or tested one. $locale_language $context $rules"
     request="fix: $request" ;;
   what)
-    ask_claude "Explain what this $shell_name command does, for someone about to run it. Reply with a plain-language explanation of at most three short sentences (no markdown, no backticks, do not repeat the command); $warning_format. $locale_language $context Command: $request"
+    ask_agent "Explain what this $shell_name command does, for someone about to run it. Reply with a plain-language explanation of at most three short sentences (no markdown, no backticks, do not repeat the command); $warning_format. $locale_language $context Command: $request"
     out="$request
 
 $out" ;;

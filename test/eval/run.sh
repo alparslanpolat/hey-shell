@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Evaluates the commands the model generates for test/eval/requests.tsv. Calls the real Claude, so it costs
+# Evaluates the commands the model generates for test/eval/requests.tsv. Calls the real agent, so it costs
 # usage and takes a few minutes; it is not part of test/run.sh or CI.
 #   ./test/eval/run.sh                  all requests with the default model
 #   HEY_SHELL_MODEL=sonnet ./test/eval/run.sh
+#   HEY_SHELL_AGENT=codex ./test/eval/run.sh   (results are named <date>-<agent>-<model>.tsv for other agents)
 #   ./test/eval/run.sh net- git-        only the requests whose id starts with one of these
 # Each command is scored on:
 #   valid     a single command came back (hey-shell exited 0)
@@ -16,7 +17,8 @@
 set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 bin="$root/bin/hey-shell"
-model="${HEY_SHELL_MODEL:-haiku}"
+agent="${HEY_SHELL_AGENT:-claude}"
+if [ "$agent" = claude ]; then model="${HEY_SHELL_MODEL:-haiku}"; else model="$agent-${HEY_SHELL_MODEL:-default}"; fi
 shell_name="${HEY_SHELL_TARGET:-bash}"
 
 # GNU-only spellings that fail or behave differently with the BSD tools on macOS

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Adds (or with --uninstall removes) the hey-shell block in your shell rc file.
-#   ./install.sh [--shell bash|zsh] [--key ctrl+g|alt+o|...] [--uninstall]
+#   ./install.sh [--shell bash|zsh] [--key ctrl+g|alt+o|...] [--agent claude|codex|gemini] [--uninstall]
 #                [--aliases | --no-alias | --alias NAME --alias-explain NAME --alias-risk NAME --alias-check NAME
 #                 --alias-fix NAME --alias-what NAME]
 # Without flags it asks for the key (default ctrl+g) and for short aliases (default: hs, hse, hsr, hsc, hsf, hsw).
@@ -13,6 +13,7 @@ end="# <<< hey-shell <<<"
 target="$(basename "${SHELL:-bash}")"
 uninstall=0
 key=""
+agent=""   # claude (default), codex or gemini; "" = keep what is installed
 no_alias=0
 alias_flags=0
 a_main="" a_explain="" a_risk="" a_check="" a_fix="" a_what=""   # alias names; "" = none
@@ -27,6 +28,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --shell) target="${2:?--shell needs bash or zsh}"; shift 2 ;;
     --key) key="${2:?--key needs a value like ctrl+g or alt+o}"; shift 2 ;;
+    --agent) agent="${2:?--agent needs claude, codex or gemini}"; shift 2 ;;
     --alias) a_main="${2:?--alias needs a name like hs}"; alias_flags=1; shift 2 ;;
     --alias-explain) a_explain="${2:?--alias-explain needs a name like hse}"; alias_flags=1; shift 2 ;;
     --alias-risk) a_risk="${2:?--alias-risk needs a name like hsr}"; alias_flags=1; shift 2 ;;
@@ -81,10 +83,26 @@ if [ "$uninstall" = 1 ]; then
   exit 0
 fi
 
-command -v claude >/dev/null || echo "warning: 'claude' CLI not found in PATH; install Claude Code first" >&2
+# the agent: --agent, else the one already installed, else claude
+case "$agent" in
+  ''|claude|codex|gemini) ;;
+  *) echo "unknown agent '$agent': use claude, codex or gemini" >&2; exit 1 ;;
+esac
+agent_changed=0
+[ -z "$agent" ] || agent_changed=1
+if [ -z "$agent" ] && is_installed; then
+  agent="$(awk -v b="$begin" -v e="$end" '$0==b{inb=1} $0==e{inb=0} inb && /^export HEY_SHELL_AGENT=/{gsub(/^export HEY_SHELL_AGENT=|"/,""); print}' "$rc")"
+fi
+agent="${agent:-claude}"
+case "$agent" in
+  claude) agent_cli=claude agent_product="Claude Code (https://claude.com/claude-code)" ;;
+  codex)  agent_cli=codex  agent_product="the Codex CLI (https://github.com/openai/codex)" ;;
+  gemini) agent_cli=gemini agent_product="the Gemini CLI (https://github.com/google-gemini/gemini-cli)" ;;
+esac
+command -v "$agent_cli" >/dev/null || echo "warning: '$agent_cli' CLI not found in PATH; install $agent_product first" >&2
 
-if is_installed && [ -z "$key" ] && [ "$alias_flags" = 0 ] && [ "$no_alias" = 0 ]; then
-  echo "already installed in $rc (re-run with --key, --aliases or --alias* to change them, or --uninstall)"
+if is_installed && [ -z "$key" ] && [ "$agent_changed" = 0 ] && [ "$alias_flags" = 0 ] && [ "$no_alias" = 0 ]; then
+  echo "already installed in $rc (re-run with --key, --agent, --aliases or --alias* to change them, or --uninstall)"
   exit 0
 fi
 
@@ -172,6 +190,7 @@ is_installed && remove_block
   echo ""
   echo "$begin"
   echo "export HEY_SHELL_KEY=\"$key\""
+  [ "$agent" = claude ] || echo "export HEY_SHELL_AGENT=\"$agent\""
   echo "export PATH=\"$root/bin:\$PATH\""
   for k in $ALIAS_KEYS; do
     name="$(get_alias "$k")"
@@ -183,7 +202,7 @@ is_installed && remove_block
 
 names=""
 for k in $ALIAS_KEYS; do name="$(get_alias "$k")"; [ -z "$name" ] || names="${names:+$names, }$name"; done
-echo "installed in $rc with key $key${names:+ and aliases $names}. Run: source $rc   then type a request and press $key (or run: ${a_explain:-hey-shell --explain} \"<request>\")"
+echo "installed in $rc with key $key, agent $agent${names:+ and aliases $names}. Run: source $rc   then type a request and press $key (or run: ${a_explain:-hey-shell --explain} \"<request>\")"
 [ "$(uname -s)" = Darwin ] && case "$key" in
   alt+*) echo "note: on macOS enable 'Use Option as Meta key' in your terminal, or alt+<key> types a symbol" ;;
 esac
