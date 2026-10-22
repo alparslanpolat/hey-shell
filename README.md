@@ -42,6 +42,14 @@ The whole idea fits in one line: **type a request, press Ctrl+G, read the comman
 ## Install
 
 ```bash
+curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash
+```
+
+Then open a new terminal. That is all: it downloads hey-shell into `~/hey-shell` (or updates it if it is already there) and runs the installer, which asks two questions. To answer them up front, add the installer's flags: `curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash -s -- --key alt+o --aliases --agent codex`.
+
+`curl … | bash` runs a script from the internet, which is exactly what hey-shell's own risk check rates HIGH. If you would rather read it first, [the script](docs/install) is about 40 lines, or install by hand:
+
+```bash
 git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell
 ~/hey-shell/install.sh
 source ~/.bashrc        # or ~/.zshrc, or open a new terminal

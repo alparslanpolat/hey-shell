@@ -92,6 +92,7 @@ code.cmd b { color: var(--lime); font-weight: 500; }
 .copy { position: absolute; top: 14px; right: 14px; font: 14px var(--mono); color: var(--text); background: transparent; border: 1px solid #4a524e; border-radius: 8px; padding: 6px 14px; cursor: pointer; }
 .copy:hover { border-color: var(--lime); color: var(--lime); }
 .safe { margin-top: 18px; color: #6f7872; font: 15px var(--mono); }
+.safe a { color: var(--lime); }
 
 footer { margin-top: 64px; border-top: 1px solid var(--line); padding: 28px 0 40px; font: 15px var(--mono); color: #6f7872; }
 footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
@@ -181,11 +182,12 @@ footer a:hover { color: var(--lime); }
 
   <section class="install" id="install">
     <h2>Install</h2>
-    <p>Clone it, run the installer, and pick your key and short aliases. Add <code>--agent codex</code> or <code>--agent gemini</code> to use those instead of Claude Code.</p>
+    <p>One line. It downloads hey-shell and asks for your key and short aliases. Then open a new terminal.</p>
     <div class="block">
       <button class="copy" type="button" data-copy>Copy</button>
-      <div id="install-cmd"><span>$ </span>git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell<br><span>$ </span>~/hey-shell/install.sh<br><span>$ </span>source ~/.zshrc</div>
+      <div id="install-cmd"><span>$ </span>curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash</div>
     </div>
+    <p class="safe">Add <code>bash -s -- --agent codex</code> (or <code>gemini</code>) to use those instead of Claude Code. Prefer to read it first? <a href="install">The script</a> is about 40 lines, or install by hand: <code>git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell &amp;&amp; ~/hey-shell/install.sh</code></p>
     <p class="safe">Then try <code>hse how to free up disk space</code> for the command with an explanation, or <code>hsc "&lt;command&gt;"</code> to check one before you run it.</p>
     <p class="safe">Generated commands are only placed on your prompt, never executed. Always read them before pressing Enter.</p>
   </section>
@@ -200,7 +202,7 @@ footer a:hover { color: var(--lime); }
 
 <script>
 document.querySelector('[data-copy]').addEventListener('click', async function () {
-  var text = 'git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell\n~/hey-shell/install.sh\nsource ~/.zshrc';
+  var text = 'curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash';
   try { await navigator.clipboard.writeText(text); this.textContent = 'Copied'; }
   catch (e) { this.textContent = 'Press Ctrl+C'; }
   setTimeout(() => { this.textContent = 'Copy'; }, 1800);

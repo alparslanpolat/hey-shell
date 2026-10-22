@@ -1,0 +1,41 @@
+#!/bin/sh
+# hey-shell one-line installer, served at https://alparslanpolat.github.io/hey-shell/install
+#
+#   curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash
+#
+# Clones hey-shell into ~/hey-shell (or updates it if it is already there), then runs its installer, which
+# asks for your key and aliases. Installer flags go after `bash -s --`:
+#
+#   curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash -s -- --key alt+o --aliases --agent codex
+#
+# Env: HEY_SHELL_DIR (default: ~/hey-shell), HEY_SHELL_REPO (default: the GitHub repository; the tests use it).
+# Everything runs inside main, called on the last line, so a download cut short runs nothing.
+
+main() {
+  set -eu
+  dir="${HEY_SHELL_DIR:-$HOME/hey-shell}"
+  repo="${HEY_SHELL_REPO:-https://github.com/alparslanpolat/hey-shell}"
+
+  command -v git >/dev/null 2>&1 || { echo "hey-shell: git is needed to install hey-shell; install git first" >&2; exit 1; }
+
+  if [ -d "$dir/.git" ]; then
+    echo "Updating hey-shell in $dir"
+    git -C "$dir" pull --ff-only --quiet
+  elif [ -e "$dir" ]; then
+    echo "hey-shell: $dir already exists and is not a hey-shell checkout; move it, or set HEY_SHELL_DIR" >&2
+    exit 1
+  else
+    echo "Downloading hey-shell into $dir"
+    git clone --quiet --depth 1 "$repo" "$dir"
+  fi
+
+  # With `curl | bash` this script arrives on stdin, so give the installer the terminal for its questions
+  if [ -r /dev/tty ] && (: </dev/tty) 2>/dev/null; then
+    "$dir/install.sh" "$@" </dev/tty
+  else
+    "$dir/install.sh" "$@"
+  fi
+  echo "Done. Open a new terminal, type a request and press your key."
+}
+
+main "$@"

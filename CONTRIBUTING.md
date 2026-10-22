@@ -15,7 +15,7 @@ your prompt ──Ctrl+G──▶ shell/hey-shell.{bash,zsh}   key binding, the 
                           └── lib/banner.sh + logo.txt  logo and help
 install.sh                adds or removes the marked block in ~/.bashrc / ~/.zshrc
 commands/, .claude-plugin/  the Claude Code plugin
-docs/                     the GitHub Pages site and images
+docs/                     the GitHub Pages site and images; docs/install is the one-line installer
 ```
 
 The key binding calls `bin/hey-shell "<request>"`, puts the printed command on your prompt line, then calls `bin/hey-shell --status "<command>"` for the status line. `hey-shell -e` prints the explanation; the shell function around it reads the plain command from `HEY_SHELL_CMD_FILE` and prefills your next prompt with it.

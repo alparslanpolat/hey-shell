@@ -4,6 +4,7 @@ The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints 
 
 ## Unreleased
 
+- One-line install: `curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash` downloads hey-shell into `~/hey-shell` (or updates it) and runs the installer, which still asks its questions.
 - Choose your agent: `HEY_SHELL_AGENT=codex` or `gemini` (or `install.sh --agent codex`) uses the Codex CLI or the Gemini CLI instead of Claude Code. Errors, the install hint and the login hint follow the agent.
 
 ## 0.5.0

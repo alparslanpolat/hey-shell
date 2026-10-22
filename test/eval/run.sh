@@ -26,7 +26,7 @@ gnu_only='sed[[:space:]]+-i[[:space:]]+(-e[[:space:]]|["'"'"']?s[/|#])|grep[[:sp
 
 # one <id> <request> <pattern> <max risk>: prints one tab-separated result line
 one() {
-  local id=$1 request=$2 pattern=$3 max=$4 work cmd status=0 parses=no correct=no portable=yes safe=no risk check rank
+  local id=$1 request=$2 pattern=$3 max=$4 work cmd status=0 parses=no correct=no portable=yes safe=no risk check
   work="$(mktemp -d)"
   cmd="$(cd "$work" && HEY_SHELL_CONTEXT=0 HEY_SHELL_HISTORY=0 HEY_SHELL_UPDATE_CHECK=0 HEY_SHELL_TARGET="$shell_name" \
     "$bin" "$request" 2>&1)" || status=$?

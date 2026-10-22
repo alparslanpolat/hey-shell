@@ -110,5 +110,22 @@ if command -v python3 >/dev/null; then
   ok '[ "$(count "^alias hs=.hey-shell.")" = 1 ] && [ "$(count "^alias x=.hey-shell --explain.")" = 1 ] && [ "$(count "--risk")" = 0 ] && [ "$(count "^alias mycheck=.hey-shell --check.")" = 1 ]' "interactive: c customizes each name, n skips one"
 fi
 
+# the one-line installer (docs/install): `curl … | bash`, here with the local repository standing in for GitHub
+bootstrap="$root/docs/install"
+H="$tmp/oneline"; mkdir -p "$H"; : > "$H/.zshrc"; rc="$H/.zshrc"
+HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$root" bash -s -- --shell zsh --aliases < "$bootstrap" >/dev/null 2>&1
+ok '[ -x "$H/hey-shell/bin/hey-shell" ] && [ "$(count "^alias ")" = 6 ]' "one-liner: clones into ~/hey-shell and installs"
+out=$(HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$root" bash -s -- --shell zsh < "$bootstrap" 2>&1)
+ok '[[ $out == *"Updating hey-shell"* ]] && [ "$(count "# >>> hey-shell >>>")" = 1 ]' "one-liner: a second run updates instead of failing"
+mkdir -p "$tmp/occupied/hey-shell"
+out=$(HOME="$tmp/occupied" HEY_SHELL_REPO="file://$root" bash < "$bootstrap" 2>&1)
+ok '[[ $out == *"is not a hey-shell checkout"* ]]' "one-liner: does not touch a folder that is not hey-shell"
+if command -v python3 >/dev/null; then
+  # piped into bash on a terminal: the script comes through stdin, the installer still asks its questions
+  H="$tmp/oneline-tty"; mkdir -p "$H"; : > "$H/.zshrc"; rc="$H/.zshrc"
+  printf '\n\n' | in_pty env HOME="$H" SHELL=/bin/zsh HEY_SHELL_REPO="file://$root" bash -c "bash < '$bootstrap'" >/dev/null 2>&1
+  ok '[ "$(count "ctrl+g")" = 1 ] && [ "$(count "^alias ")" = 6 ]' "one-liner: on a terminal, the installer asks and Enter accepts the defaults"
+fi
+
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]
