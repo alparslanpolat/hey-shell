@@ -59,7 +59,9 @@ ask_claude() {
   command -v "$claude_bin" >/dev/null || die "Claude Code CLI not found in PATH. Install it: https://claude.com/claude-code"
   outf="$(mktemp)" errf="$(mktemp)" markf="$(mktemp)"
   rm -f "$markf"
-  "$claude_bin" -p --model "${HEY_SHELL_MODEL:-haiku}" "$1" >"$outf" 2>"$errf" &
+  # text only: no tools or MCP servers, and no saved session cluttering `claude --resume`
+  "$claude_bin" -p --model "${HEY_SHELL_MODEL:-haiku}" --tools "" --strict-mcp-config --no-session-persistence \
+    "$1" >"$outf" 2>"$errf" &
   pid=$!
   # watchdog: checks once a second, so it never outlives claude by more than a second
   ( i=0

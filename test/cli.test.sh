@@ -13,6 +13,7 @@ cat > "$tmp/claude" <<'FAKE'
 for last; do :; done
 [ -z "${FAKE_SLEEP:-}" ] || sleep "$FAKE_SLEEP"
 printf '%s' "$last" > "$FAKE_PROMPT_FILE"
+printf '%s\n' "$@" > "$FAKE_PROMPT_FILE.args"
 [ -z "${FAKE_OUT:-}" ] || printf '%b\n' "$FAKE_OUT"
 [ -z "${FAKE_ERR:-}" ] || printf '%b\n' "$FAKE_ERR" >&2
 exit "${FAKE_STATUS:-0}"
@@ -31,6 +32,13 @@ expect() {
     *) printf 'FAIL %s\n  wanted: %s\n  got:    %s\n' "$name" "$want" "$got"; fail=$((fail + 1)) ;;
   esac
 }
+
+# text only: no tools, no MCP servers, no saved session
+FAKE_OUT='ls' "$bin" list files >/dev/null 2>&1
+total=$((total + 1))
+{ grep -qx -- '--strict-mcp-config' "$tmp/prompt.args" && grep -qx -- '--no-session-persistence' "$tmp/prompt.args" \
+  && grep -A1 -x -- '--tools' "$tmp/prompt.args" | sed -n 2p | grep -qx ''; } \
+  || { echo "FAIL claude should be called with --tools \"\" --strict-mcp-config --no-session-persistence"; fail=$((fail + 1)); }
 
 HEY_SHELL_CLAUDE="$tmp/does-not-exist" expect "missing cli" "Install it: https://claude.com/claude-code" list files
 FAKE_STATUS=1 FAKE_OUT="Invalid API key · Please run /login" expect "not logged in" "not logged in" list files
