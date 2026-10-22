@@ -1,7 +1,7 @@
 {
   "name": "hey-shell",
   "description": "Turn plain-language requests into shell commands placed on your prompt for review",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "author": { "name": "alparslanpolat" },
   "license": "MIT"
 }

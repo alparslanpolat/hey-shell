@@ -13,7 +13,7 @@
 #   safe      its risk is no higher than the request's ceiling
 #   no issues the failure check finds no known problem (a missing program usually means a wrong tool)
 # Requests run in an empty folder with project context off, so results compare across machines and models.
-# Results go to test/eval/results/<date>-<model>.tsv; the summary is printed.
+# Results go to test/eval/results/<date>-<model>.tsv (-partial.tsv for a subset); the summary is printed.
 set -u
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 bin="$root/bin/hey-shell"
@@ -55,7 +55,7 @@ fi
 
 prefixes=("$@")
 mkdir -p "$root/test/eval/results"
-out="$root/test/eval/results/$(date +%Y-%m-%d)-$model.tsv"
+out="$root/test/eval/results/$(date +%Y-%m-%d)-$model${prefixes[0]:+-partial}.tsv" # a subset never replaces a full run
 printf 'id\tvalid\tparses\tcorrect\tportable\tsafe\tno_issues\trisk\tcommand\n' > "$out"
 
 grep -v '^#' "$root/test/eval/requests.tsv" | sed '/^$/d' | while IFS=$'\t' read -r id request pattern max; do

@@ -20,7 +20,7 @@ proc-memory	top 5 processes by memory use	ps .*(-m|%mem|rss|sort)|top	low
 proc-name	is postgres running	(pgrep|ps|pg_isready|brew services|systemctl).*(postgres|pg)	low
 proc-uptime	how long has this machine been up	uptime|sysctl.*boottime|who -b	low
 net-dns	resolve example.com with Cloudflare's DNS	(dig|nslookup|host|drill|kdig).*(1\.1\.1\.1|1\.0\.0\.1)|cloudflare-dns\.com	low
-net-dns-compare	compare example.com answers from 1.1.1.1 and 8.8.8.8	(dig|nslookup|host).*1\.1\.1\.1.*8\.8\.8\.8|(dig|nslookup|host).*8\.8\.8\.8.*1\.1\.1\.1	low
+net-dns-compare	compare example.com answers from 1.1.1.1 and 8.8.8.8	(dig|nslookup|host).*1\.1\.1\.1.*8\.8\.8\.8|(dig|nslookup|host).*8\.8\.8\.8.*1\.1\.1\.1|1\.1\.1\.1.*8\.8\.8\.8.*(dig|nslookup|host)	low
 net-tls-expiry	when does the TLS certificate of example.com expire	openssl.*s_client.*example\.com|openssl.*x509.*(enddate|dates)|curl.*-v.*example	low
 net-headers	show the HTTP response headers of https://example.com	curl.*-(I|i|sI|D|v|-head)|http(ie)? .*--headers|wget.*-S	low
 net-public-ip	what is my public IP address	curl.*(ifconfig|ipify|icanhazip|ipinfo|checkip|ident\.me)|dig.*(myip|whoami)	low
@@ -29,7 +29,7 @@ net-open-ports	list ports this machine listens on	lsof.*LISTEN|netstat.*-(an|l)|
 net-download	download https://example.com/file.zip to this folder	(curl|wget).*example\.com/file\.zip	low
 net-latency	time how long https://example.com takes to respond	curl.*-w|time .*curl|hyperfine	low
 git-branches-recent	git branches sorted by last commit date	git (branch|for-each-ref).*committerdate	low
-git-undo-commit	undo my last commit but keep the changes	git reset (--soft|--mixed)? *HEAD[~^]|git reset HEAD~	medium
+git-undo-commit	undo my last commit but keep the changes	git( -C [^ ]+)? reset (--soft|--mixed)? *HEAD[~^]|git( -C [^ ]+)? reset HEAD~	medium
 git-who-changed	who last changed line 42 of README.md	git blame.*(-L *42|42).*README|git blame.*README.*42	low
 git-big-files	find the biggest files in git history	git (rev-list|verify-pack|cat-file)|git-sizer|filter-repo	low
 git-diff-stat	summary of what changed since the main branch	git (diff|log).*(--stat|--shortstat|--name-status|--oneline).*main|git diff.*main	low
