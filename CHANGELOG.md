@@ -2,8 +2,10 @@
 
 The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints it.
 
-## Unreleased
+## 0.5.0
 
+- `hse` and `hsf` no longer need hey-shell on your `PATH`: the shell integration calls its own copy.
+- Re-running the installer no longer piles up blank lines in your rc file.
 - Ctrl+G now works in macOS's built-in bash 3.2, which has no `READLINE_LINE` (it silently did nothing before).
 - `Check: OK` is now `Check: No known issues`: it means no known problem was found, not that the command was tested.
 - Replies are validated before they reach your prompt: terminal control characters are removed, a `$ ` prompt and backticks are stripped, and prose, several commands or very long replies are refused with a message.
