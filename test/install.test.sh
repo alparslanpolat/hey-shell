@@ -127,5 +127,19 @@ if command -v python3 >/dev/null; then
   ok '[ "$(count "ctrl+g")" = 1 ] && [ "$(count "^alias ")" = 6 ]' "one-liner: on a terminal, the installer asks and Enter accepts the defaults"
 fi
 
+# fish: its config file and its own syntax (an exported "$PATH" would join fish's PATH list with spaces)
+H="$tmp/fish-home"; mkdir -p "$H"; frc="$H/.config/fish/config.fish"
+HOME="$H" XDG_CONFIG_HOME="$H/.config" SHELL=/usr/bin/fish "$installer" --shell fish --aliases --agent gemini </dev/null >/dev/null 2>&1
+ok '[ -f "$frc" ] && grep -q "^set -gx HEY_SHELL_KEY \"ctrl+g\"" "$frc" && grep -q "^set -gx HEY_SHELL_AGENT \"gemini\"" "$frc" && [ "$(grep -c "^alias " "$frc")" = 6 ]' "fish: installs into config.fish in fish syntax"
+ok '! grep -q "^export" "$frc"'                               "fish: no bash export lines"
+HOME="$H" XDG_CONFIG_HOME="$H/.config" SHELL=/usr/bin/fish "$installer" --shell fish --key alt+o </dev/null >/dev/null 2>&1
+ok 'grep -q "^set -gx HEY_SHELL_AGENT \"gemini\"" "$frc" && grep -q "alt+o" "$frc"' "fish: changing the key keeps the agent"
+if command -v fish >/dev/null; then
+  ok 'fish --no-execute "$frc"'                                "fish: config.fish still parses"
+  ok '[ "$(HOME="$H" XDG_CONFIG_HOME="$H/.config" fish -c "contains -- $root/bin \$PATH; and functions -q hsf; and echo ok")" = ok ]' "fish: PATH and the aliases load"
+fi
+HOME="$H" XDG_CONFIG_HOME="$H/.config" SHELL=/usr/bin/fish "$installer" --shell fish --uninstall </dev/null >/dev/null 2>&1
+ok '! grep -q "hey-shell" "$frc"'                              "fish: uninstall removes the block"
+
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]

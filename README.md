@@ -36,7 +36,7 @@ staged, so you can recommit them.
 Risk: LOW · Check: No known issues
 ```
 
-Works in bash and zsh on Linux, WSL2 and macOS. The commands come from the AI agent CLI you already use and are logged in to: [Claude Code](https://claude.com/claude-code) by default, or the [Codex CLI](https://github.com/openai/codex) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) (see [Choose your agent](#choose-your-agent)).
+Works in bash, zsh and fish on Linux, WSL2 and macOS. The commands come from the AI agent CLI you already use and are logged in to: [Claude Code](https://claude.com/claude-code) by default, or the [Codex CLI](https://github.com/openai/codex) or [Gemini CLI](https://github.com/google-gemini/gemini-cli) (see [Choose your agent](#choose-your-agent)).
 
 ## At a glance
 
@@ -76,6 +76,8 @@ git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell
 ~/hey-shell/install.sh
 source ~/.bashrc        # or ~/.zshrc, or open a new terminal
 ```
+
+In fish, the installer writes to `~/.config/fish/config.fish` in fish syntax.
 
 The installer asks two things:
 
@@ -198,7 +200,7 @@ Risk: LOW · Check: LIKELY FAIL
 
 What it looks at:
 
-- **Syntax:** the command is parsed with `bash -n` or `zsh -n`, which never executes it.
+- **Syntax:** the command is parsed with `bash -n`, `zsh -n` or `fish --no-execute`, which never executes it.
 - **Programs:** every program in a pipeline or `&&` chain must exist as an executable, builtin, keyword, or one of your own aliases and functions.
 - **Environment:** `git` needs a repository, `tmux` needs a running server, `docker` needs its socket. These use read-only probes (`git rev-parse`, `tmux list-sessions`, a socket test).
 
@@ -257,7 +259,7 @@ The risk rating and the failure check run locally and send nothing. Your request
 
 **Ctrl+G in macOS's built-in bash (3.2).** That bash cannot read or replace the line from a key binding, so there the key turns your request into a comment and accepts it (nothing runs), reads it back from history, removes it again, and puts the command on the next prompt. It works the same; you just see your request on its own line first. Homebrew's bash 5 (`brew install bash`) or zsh replace the line directly.
 
-**Ctrl+G does nothing.** Check the key is bound: `bind -X | grep hey_shell` in bash, `bindkey | grep hey_shell` in zsh. If nothing is listed, open a new terminal. If another tool uses the key, pick a different one with `~/hey-shell/install.sh --key ctrl+o`.
+**Ctrl+G does nothing.** Check the key is bound: `bind -X | grep hey_shell` in bash, `bindkey | grep hey_shell` in zsh, `bind | grep hey_shell` in fish. If nothing is listed, open a new terminal. If another tool uses the key, pick a different one with `~/hey-shell/install.sh --key ctrl+o`.
 
 **"thinking..." and then an error.** The agent's CLI must be installed and logged in: run `claude` once and complete `/login` (Codex: `codex login`; Gemini: run `gemini` once and sign in). A slow network can hit the timeout; raise `HEY_SHELL_TIMEOUT`.
 

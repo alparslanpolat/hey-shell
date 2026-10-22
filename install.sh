@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Adds (or with --uninstall removes) the hey-shell block in your shell rc file.
-#   ./install.sh [--shell bash|zsh] [--key ctrl+g|alt+o|...] [--agent claude|codex|gemini] [--uninstall]
+#   ./install.sh [--shell bash|zsh|fish] [--key ctrl+g|alt+o|...] [--agent claude|codex|gemini] [--uninstall]
 #                [--aliases | --no-alias | --alias NAME --alias-explain NAME --alias-risk NAME --alias-check NAME
 #                 --alias-fix NAME --alias-what NAME]
 # Without flags it asks for the key (default ctrl+g) and for short aliases (default: hs, hse, hsr, hsc, hsf, hsw).
@@ -26,7 +26,7 @@ set_alias() { case $1 in main) a_main=$2 ;; explain) a_explain=$2 ;; risk) a_ris
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --shell) target="${2:?--shell needs bash or zsh}"; shift 2 ;;
+    --shell) target="${2:?--shell needs bash, zsh or fish}"; shift 2 ;;
     --key) key="${2:?--key needs a value like ctrl+g or alt+o}"; shift 2 ;;
     --agent) agent="${2:?--agent needs claude, codex or gemini}"; shift 2 ;;
     --alias) a_main="${2:?--alias needs a name like hs}"; alias_flags=1; shift 2 ;;
@@ -45,7 +45,8 @@ done
 case "$target" in
   zsh)  rc="$HOME/.zshrc" ;;
   bash) if [ "$(uname -s)" = Darwin ]; then rc="$HOME/.bash_profile"; else rc="$HOME/.bashrc"; fi ;;
-  *) echo "unsupported shell: $target (use --shell bash|zsh)" >&2; exit 1 ;;
+  fish) rc="${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"; mkdir -p "$(dirname "$rc")" ;;
+  *) echo "unsupported shell: $target (use --shell bash|zsh|fish)" >&2; exit 1 ;;
 esac
 
 is_installed() { [ -f "$rc" ] && grep -qF "$begin" "$rc"; }
@@ -91,7 +92,7 @@ esac
 agent_changed=0
 [ -z "$agent" ] || agent_changed=1
 if [ -z "$agent" ] && is_installed; then
-  agent="$(awk -v b="$begin" -v e="$end" '$0==b{inb=1} $0==e{inb=0} inb && /^export HEY_SHELL_AGENT=/{gsub(/^export HEY_SHELL_AGENT=|"/,""); print}' "$rc")"
+  agent="$(awk -v b="$begin" -v e="$end" '$0==b{inb=1} $0==e{inb=0} inb && /^(export HEY_SHELL_AGENT=|set -gx HEY_SHELL_AGENT )/{gsub(/^export HEY_SHELL_AGENT=|^set -gx HEY_SHELL_AGENT |"/,""); print}' "$rc")"
 fi
 agent="${agent:-claude}"
 case "$agent" in
@@ -189,9 +190,15 @@ is_installed && remove_block
 {
   echo ""
   echo "$begin"
-  echo "export HEY_SHELL_KEY=\"$key\""
-  [ "$agent" = claude ] || echo "export HEY_SHELL_AGENT=\"$agent\""
-  echo "export PATH=\"$root/bin:\$PATH\""
+  if [ "$target" = fish ]; then # fish syntax: "$PATH" in quotes would join fish's PATH list with spaces
+    echo "set -gx HEY_SHELL_KEY \"$key\""
+    [ "$agent" = claude ] || echo "set -gx HEY_SHELL_AGENT \"$agent\""
+    echo "contains -- \"$root/bin\" \$PATH; or set -gx PATH \"$root/bin\" \$PATH"
+  else
+    echo "export HEY_SHELL_KEY=\"$key\""
+    [ "$agent" = claude ] || echo "export HEY_SHELL_AGENT=\"$agent\""
+    echo "export PATH=\"$root/bin:\$PATH\""
+  fi
   for k in $ALIAS_KEYS; do
     name="$(get_alias "$k")"
     [ -z "$name" ] || echo "alias $name='$(command_for "$k")'"

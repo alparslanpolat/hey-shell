@@ -243,6 +243,10 @@ case $(FAKE_OUT='echo \033]0;owned\007\033[2Jhi' "$bin" say hi 2>&1) in
   *$'\033'*|*$'\007'*) echo "FAIL control characters from the reply must not reach the terminal"; fail=$((fail + 1)) ;;
 esac
 
+# fish: the prompt asks for a fish command
+FAKE_OUT='ls' HEY_SHELL_TARGET=fish "$bin" list files >/dev/null 2>&1
+prompt_has "fish target" "Reply with exactly one fish command"
+
 # other agents: the same fake stands in for codex and gemini; check the command line each one gets
 args() { tr '\n' ' ' < "$tmp/prompt.args"; }
 has_args() { # name expected-substring

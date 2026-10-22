@@ -71,6 +71,14 @@ check ok '' '(cd / && ls) > /dev/null'
 check fail "'nosuchprog-zz' not found" '2>/dev/null nosuchprog-zz'
 check fail "'nosuchprog-zz' not found" 'echo $(nosuchprog-zz) > /dev/null'
 
+# fish: its own syntax and builtins (only when fish is installed)
+if command -v fish >/dev/null; then
+  HEY_SHELL_TARGET=fish check ok '' 'for f in *.txt; echo $f; end'
+  HEY_SHELL_TARGET=fish check ok '' 'set -x FOO bar; and echo (string upper $FOO)'
+  HEY_SHELL_TARGET=fish check fail 'Missing end' 'for f in *.txt; echo $f'
+  HEY_SHELL_TARGET=fish check fail "'nosuchprog-zz' not found" 'echo (nosuchprog-zz)'
+fi
+
 # the check never runs the command
 marker="$nonrepo/ran"
 check ok '' "touch $marker"

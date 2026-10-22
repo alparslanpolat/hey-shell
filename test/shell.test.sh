@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives real interactive bash and zsh with the hey-shell integration loaded, against a fake `claude`:
+# Drives real interactive bash, zsh and fish with the hey-shell integration loaded, against a fake `claude`:
 #   ./test/shell.test.sh   (exit 1 on any mismatch)
 # Each check types into the shell and looks for the file that the command it ends up running creates, so it covers
 # the key binding replacing the line, `hse` leaving the command on the next prompt, and `hsf` finding the
@@ -33,12 +33,16 @@ session() {
   local sh=$1 cmd
   shift
   rm -f "$tmp"/ran-*
+  local setup="source '$root/shell/hey-shell.${sh##*/}'; PS1='> '"
   case $sh in
     *bash) cmd=("$sh" --norc --noprofile -i) ;;
     *zsh)  cmd=("$sh" -f -i) ;;
+    *fish) cmd=("$sh" --no-config -i); setup="source '$root/shell/hey-shell.fish'" ;;
   esac
-  { printf "source '%s/shell/hey-shell.%s'; PS1='> '\n" "$root" "${sh##*/}"; printf '%s\n' "$@" exit; } \
-    | env PATH="$clean_path" TERM=xterm-256color HISTFILE="$tmp/history" HEY_SHELL_CLAUDE="$tmp/claude" HEY_SHELL_UPDATE_CHECK=0 \
+  # fish keeps history under XDG_DATA_HOME, named by fish_history: both point into $tmp, away from yours
+  { printf '%s\n' "$setup"; printf '%s\n' "$@" exit; } \
+    | env PATH="$clean_path" TERM=xterm-256color HISTFILE="$tmp/history" XDG_DATA_HOME="$tmp/data" fish_history=heyshelltest \
+        HEY_SHELL_CLAUDE="$tmp/claude" HEY_SHELL_UPDATE_CHECK=0 \
         HEY_SHELL_HISTORY=0 HEY_SHELL_CONTEXT=0 PTY_STEP_DELAY="${PTY_STEP_DELAY:-1.5}" \
         python3 -I "$root/test/pty_run.py" "${cmd[@]}" > "$tmp/session.log" 2>&1
 }
@@ -46,14 +50,17 @@ session() {
 # hey-shell must work from the integration alone, without its bin/ on PATH (CI runners do not have it)
 clean_path=$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/hey-shell/bin$' | paste -sd: -)
 
-# every bash on the machine (macOS ships 3.2, which has no READLINE_LINE and uses a fallback) and zsh
-shells=$( { command -v bash; ls /bin/bash /usr/bin/bash /usr/local/bin/bash /opt/homebrew/bin/bash 2>/dev/null; command -v zsh; } | awk '!seen[$0]++')
+# every bash on the machine (macOS ships 3.2, which has no READLINE_LINE and uses a fallback), zsh and fish
+shells=$( { command -v bash; ls /bin/bash /usr/bin/bash /usr/local/bin/bash /opt/homebrew/bin/bash 2>/dev/null; command -v zsh; command -v fish; } | awk '!seen[$0]++')
 tested=()
 for sh in $shells; do
   [ -x "$sh" ] || continue
   for t in ${tested[@]+"${tested[@]}"}; do [ "$sh" -ef "$t" ] && continue 2; done # /bin/bash -> /usr/bin/bash
   tested+=("$sh")
-  name="$sh $("$sh" -c 'echo ${BASH_VERSION:-$ZSH_VERSION}')"
+  case $sh in
+    *fish) name="$sh $("$sh" --version | sed 's/.*version //')" ;;
+    *) name="$sh $("$sh" -c 'echo ${BASH_VERSION:-$ZSH_VERSION}')" ;;
+  esac
 
   # the request itself is valid shell that would leave a file behind: the key must never run it
   session "$sh" "touch $tmp/ran-request"$'\a\x1f'   # \x1f: pause before Enter, so the command can land first

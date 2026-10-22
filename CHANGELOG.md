@@ -2,6 +2,10 @@
 
 The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints it.
 
+## Unreleased
+
+- fish support: Ctrl+G, `hse`, refine, `hsf` and the aliases work in fish (`shell/hey-shell.fish`). The installer writes fish syntax to `~/.config/fish/config.fish`, generated commands are fish commands, and the failure check parses with `fish --no-execute` and knows fish builtins. Tested in real fish sessions and in CI on Linux and macOS.
+
 ## 0.6.0
 
 - One-line install: `curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash` downloads hey-shell into `~/hey-shell` (or updates it) and runs the installer, which still asks its questions.

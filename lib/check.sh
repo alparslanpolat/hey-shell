@@ -2,10 +2,10 @@
 # shellcheck disable=SC2034  # the results are globals read by bin/hey-shell
 # Predicts whether a generated command would fail, without running it. Sourced by bin/hey-shell.
 #   hey_shell_check "<command>"  sets HEY_SHELL_CHECK_LEVEL (ok|fail) and HEY_SHELL_CHECK_REASON.
-# The command is only parsed (`bash -n` / `zsh -n`). A few read-only probes look at the environment
+# The command is only parsed (`bash -n` / `zsh -n` / `fish --no-execute`). A few read-only probes look at the environment
 # (`tmux list-sessions`, `git rev-parse`, the docker socket). It is a prediction, not a guarantee:
 # it cannot know about missing files, permissions, or what a program does with its arguments.
-# Env: HEY_SHELL_TARGET (bash|zsh), HEY_SHELL_KNOWN_NAMES (newline list of the caller's aliases and functions)
+# Env: HEY_SHELL_TARGET (bash|zsh|fish), HEY_SHELL_KNOWN_NAMES (newline list of the caller's aliases and functions)
 
 _hs_word='' _hs_have=0 _hs_at_cmd=1 _hs_skip_seg=0 _hs_defined=''
 
@@ -98,6 +98,8 @@ _hs_word_exists() {
   case $w in */*) [ -x "$w" ]; return ;; esac
   if [ "${HEY_SHELL_TARGET:-bash}" = zsh ] && command -v zsh >/dev/null 2>&1; then
     zsh -fc 'whence -w -- "$1" >/dev/null 2>&1' _ "$w" && return 0
+  elif [ "${HEY_SHELL_TARGET:-bash}" = fish ] && command -v fish >/dev/null 2>&1; then
+    fish --no-config -c 'type -q -- $argv[1]' "$w" && return 0
   else
     [ -n "$(type -t -- "$w" 2>/dev/null || true)" ] && return 0
   fi
@@ -118,6 +120,8 @@ hey_shell_check() {
   # 1. does it parse?
   if [ "$shell_name" = zsh ] && command -v zsh >/dev/null 2>&1; then
     err=$(zsh -n -c "$cmd" 2>&1 >/dev/null) || { _hs_fail "syntax error: $(printf '%s' "$err" | head -1)"; return 0; }
+  elif [ "$shell_name" = fish ] && command -v fish >/dev/null 2>&1; then
+    err=$(fish --no-config --no-execute -c "$cmd" 2>&1 >/dev/null) || { _hs_fail "syntax error: $(printf '%s' "$err" | head -1)"; return 0; }
   else
     err=$(bash -n -c "$cmd" 2>&1 >/dev/null) || { _hs_fail "syntax error: $(printf '%s' "$err" | head -1 | sed 's/^bash: -c: //')"; return 0; }
   fi
