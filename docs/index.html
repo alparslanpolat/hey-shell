@@ -35,6 +35,9 @@ header { border-bottom: 1px solid var(--line); }
 header .wrap { display: flex; align-items: center; justify-content: space-between; height: 76px; }
 .brand { display: flex; align-items: center; gap: 16px; font: 600 24px var(--mono); letter-spacing: .04em; }
 .brand svg { width: 38px; height: 38px; }
+.brand:hover svg, .brand:focus-visible svg { animation: shake .5s ease-in-out; }
+@keyframes shake { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-14deg); } 30% { transform: rotate(11deg); } 45% { transform: rotate(-8deg); } 60% { transform: rotate(5deg); } 75% { transform: rotate(-2deg); } }
+@media (prefers-reduced-motion: reduce) { .brand:hover svg, .brand:focus-visible svg { animation: none; } }
 nav { display: flex; align-items: center; gap: 40px; font: 16px var(--mono); color: var(--muted); }
 nav a:hover { color: var(--lime); }
 .btn { display: inline-block; font: 600 16px var(--mono); color: var(--bg); background: var(--lime); border: 1px solid var(--lime); border-radius: 10px; padding: 8px 18px; transition: background .2s, color .2s; }
@@ -67,6 +70,16 @@ kbd { font: 500 22px var(--mono); border: 1.5px solid var(--lime); border-radius
 .keys small { font-size: 17px; color: var(--muted); margin-left: 8px; }
 .cursor { display: inline-block; width: 15px; height: 30px; background: var(--text); vertical-align: -5px; margin-left: 8px; animation: blink 1.1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
+.tw-r { visibility: hidden; }
+.hero-term .body { display: flex; flex-direction: column; }
+.hero-term .keys { margin-top: auto; transition: opacity .35s; }
+.hero-term .keys.gone { opacity: 0; }
+.hero-line .cursor { width: .55em; height: 1.05em; vertical-align: -.2em; }
+.tw-caret { border-right: max(3px, .06em) solid var(--lime); margin-left: .04em; }
+.term kbd { transition: background .12s, color .12s, transform .12s; }
+.term kbd.down { background: var(--lime); color: var(--bg); transform: translateY(2px); }
+.status .med { color: #f4a83a; }
+.status .ok { color: #8fd16a; }
 .status { border-top: 1px solid var(--line); padding: 16px 32px; font: 13px var(--mono); color: var(--muted); }
 
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 24px 0 48px; }
@@ -88,7 +101,7 @@ code.cmd b { color: var(--lime); font-weight: 500; }
 /* with it, a coverflow: the active card in front, its neighbours smaller and turned away on either side (set by the script) */
 .car { position: relative; margin-top: 28px; padding-top: 12px; overflow-x: clip; }
 .car .carousel { grid-auto-flow: row; grid-auto-columns: auto; justify-items: center; margin: 0; padding: 0; overflow: visible; perspective: 1600px; touch-action: pan-y; }
-.car .carousel > * { grid-area: 1 / 1; width: min(600px, 88%); transition: transform .5s cubic-bezier(.2, .7, .2, 1), opacity .5s; }
+.car .carousel > * { grid-area: 1 / 1; width: min(600px, 88%); transition: transform .5s cubic-bezier(.2, .7, .2, 1), opacity .5s, translate .25s, border-color .25s, box-shadow .25s; }
 .car .car-more > * { width: min(440px, 80%); }
 .car .carousel > *::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: #000; opacity: var(--dim, 0); transition: opacity .5s; pointer-events: none; }
 .car-btn { position: absolute; top: calc(50% - 46px); z-index: 20; width: 56px; height: 56px; border-radius: 50%; border: 1px solid #3a413d; background: #232825; color: var(--text); font: 22px var(--mono); cursor: pointer; }
@@ -103,6 +116,12 @@ code.cmd b { color: var(--lime); font-weight: 500; }
 .carousel > :nth-child(6n+4) { --tint: #a78bfa; } .carousel > :nth-child(6n+5) { --tint: #6ab0f5; } .carousel > :nth-child(6n+6) { --tint: #ec8a7e; }
 .stage, .card { position: relative; border-radius: 24px; border: 1px solid color-mix(in srgb, var(--tint) 30%, transparent); background: var(--panel); background: linear-gradient(155deg, color-mix(in srgb, var(--tint) 16%, var(--panel)), var(--panel) 65%); box-shadow: 0 20px 50px rgba(0,0,0,.5), 0 0 60px color-mix(in srgb, var(--tint) 8%, transparent); }
 .stage { padding: 28px; display: flex; flex-direction: column; gap: 22px; }
+/* hover: lift a little and light up in the card's own color (translate, so the carousel's transform is untouched) */
+.stage, .card { transition: translate .25s, border-color .25s, box-shadow .25s; }
+@media (hover: hover) {
+  .stage:hover, .card:hover { translate: 0 -6px; border-color: color-mix(in srgb, var(--tint) 65%, transparent); box-shadow: 0 28px 60px rgba(0,0,0,.55), 0 0 80px color-mix(in srgb, var(--tint) 20%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .stage:hover, .card:hover { translate: none; } }
 .tag { font: 600 13px var(--mono); color: var(--tint); letter-spacing: .08em; }
 .stage h3, .card h3 { margin-top: 10px; font: 800 30px/1.02 var(--sans); text-transform: uppercase; letter-spacing: -.01em; color: var(--text); }
 .stage-text p { margin-top: 12px; color: var(--muted); font-size: 17px; }
@@ -173,6 +192,14 @@ a.gh svg { width: 1.1em; height: 1.1em; flex: none; }
 footer { margin-top: 64px; border-top: 1px solid var(--line); padding: 28px 0 40px; font: 15px var(--mono); color: #6f7872; }
 footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 footer a:hover { color: var(--lime); }
+/* the repo link: a faint green line with a light running along it, solid green on hover */
+footer a.gh { position: relative; padding-bottom: 5px; }
+footer a.gh::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--lime), transparent) no-repeat, color-mix(in srgb, var(--lime) 22%, transparent);
+  background-size: 40% 100%, 100% 100%; animation: glint 2.8s ease-in-out infinite; transition: background-color .3s; }
+footer a.gh:hover::after { background-color: var(--lime); }
+@keyframes glint { from { background-position: -70% 0, 0 0; } to { background-position: 170% 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) { footer a.gh::after { animation: none; background-position: 50% 0, 0 0; } }
 
 @media (max-width: 960px) {
   .wrap { padding: 0 22px; }
@@ -194,7 +221,21 @@ footer a:hover { color: var(--lime); }
 @media (max-width: 520px) { nav a[href^="#"]:not(.btn) { display: none; } nav a.gh span { display: none; } nav a.gh svg { width: 22px; height: 22px; } .brand { font-size: 20px; gap: 10px; white-space: nowrap; } nav { gap: 18px; } }
 @media (max-width: 360px) { h1 { font-size: 44px; } nav a:not(.btn) { display: none; } }
 @media (prefers-reduced-motion: reduce) { .car .carousel > *, .car .carousel > *::after, .car-dots button { transition: none; } .cursor { animation: none; } html { scroll-behavior: auto; } }
+.js-type [data-type] { visibility: hidden; }
+/* while the headline types, the terminal waits blurred under the shaking logo */
+.hero-term { position: relative; }
+.hero-term > .bar, .hero-term > .body, .hero-term > .status { transition: filter .8s, opacity .8s; }
+.js-type .hero-term:not(.ready) > .bar, .js-type .hero-term:not(.ready) > .body, .js-type .hero-term:not(.ready) > .status { filter: blur(7px); opacity: .55; }
+.hero-wait { display: none; }
+.js-type .hero-wait { display: flex; position: absolute; inset: 0; z-index: 2; align-items: center; justify-content: center; transition: opacity .6s; pointer-events: none; }
+.js-type .hero-term.ready .hero-wait { opacity: 0; }
+.hero-wait svg { width: 96px; height: 96px; filter: drop-shadow(0 0 24px color-mix(in srgb, var(--lime) 35%, transparent)); animation: wait-shake 1.4s ease-in-out infinite; }
+@keyframes wait-shake { 0%, 32%, 100% { transform: rotate(0); } 5% { transform: rotate(-14deg); } 10% { transform: rotate(11deg); } 15% { transform: rotate(-8deg); } 20% { transform: rotate(5deg); } 25% { transform: rotate(-2deg); } }
+.js-type [data-type] tw-x:not(.tw-r), .js-type [data-type].tw-done { visibility: visible; }
 </style>
+<script>
+if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) document.documentElement.classList.add('js-type');
+</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -224,21 +265,22 @@ footer a:hover { color: var(--lime); }
 <main id="top" class="wrap">
   <section class="hero">
     <div>
-      <h1>Your words.<span>Shell commands.</span></h1>
-      <p class="lead">Type what you need. Press your shortcut.<br>Review the command. <b>Hit Enter when ready.</b></p>
+      <h1 data-type>Your words.<span>Shell commands.</span></h1>
+      <p class="lead" data-type>Type what you need. Press your shortcut.<br>Review the command. <b>Hit Enter when ready.</b></p>
       <a class="btn lg" href="#install">Install hey-shell →</a>
       <div class="chips"><span class="chip">bash · zsh · fish</span><span class="chip">Linux · WSL2 · macOS</span></div>
       <p class="req">Works with Claude Code, Codex CLI or Gemini CLI</p>
       <p class="req">hey-shell never runs the suggested command. What the agent itself can do while answering depends on <a href="#agents">which one you pick</a>.</p>
     </div>
-    <div class="term" role="img" aria-label="Terminal: typing 'find files larger than 100 MB, excluding node_modules and .git, sorted by size', pressing Ctrl+G, and getting a find command on the prompt, not executed">
+    <div class="term hero-term" role="img" aria-label="Terminal: typing 'find files larger than 100 MB, excluding node_modules and .git, sorted by size', pressing Ctrl+G, and getting a find command on the prompt, not executed">
       <div class="bar"><i></i><i></i><i></i><em>hey-shell — zsh</em></div>
       <div class="body">
-        <div><span class="prompt">$</span>find files larger than 100 MB, excluding node_modules and .git, sorted by size</div>
+        <div class="hero-line"><span class="prompt">$</span>find files larger than 100 MB, excluding node_modules and .git, sorted by size</div>
         <div class="keys"><kbd>Ctrl</kbd><span>+</span><kbd>G</kbd><small>default · customizable</small></div>
         <div class="hero-cmd"><span class="prompt">$</span>find . \( -name node_modules -o -name .git \) -prune -o -type f -size +100M -printf '%s\t%p\n' | sort -rn<span class="cursor"></span></div>
       </div>
-      <div class="status">Risk: none recognized · Check: No known issues · Not executed</div>
+      <div class="hero-wait" aria-hidden="true"><svg><use href="#logo"/></svg></div>
+      <div class="status">Risk: none recognized · Check: <span class="ok">No known issues</span> · Not executed</div>
     </div>
   </section>
 
@@ -459,6 +501,83 @@ document.querySelectorAll('.carousel').forEach(function (track) {
   });
   go(0);
 });
+// Hero: type the headline once, then loop the terminal the way the shell binding behaves: type the request,
+// press the shortcut, "hey-shell: thinking...", the line is replaced by the command, the status appears.
+(function () {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var caret = document.createElement('tw-x'); caret.className = 'tw-caret'; // own tag: page styles target spans
+
+  // prep: split the text into typed / not yet typed halves; type: move the letters across one at a time
+  function prep(el) {
+    var parts = [], walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), t;
+    el.setAttribute('aria-label', el.textContent);
+    while ((t = walk.nextNode())) parts.push(t);
+    return { el: el, html: el.innerHTML, parts: parts.map(function (node) {
+      var typed = document.createElement('tw-x'), rest = document.createElement('tw-x');
+      rest.className = 'tw-r'; rest.textContent = node.data;
+      node.replaceWith(typed, rest);
+      return { typed: typed, rest: rest, text: rest.textContent };
+    }) };
+  }
+  async function typeOnce(job, speed) {
+    var parts = job.parts, el = job.el;
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      p.typed.after(caret);
+      for (var j = 1; j <= p.text.length; j++) {
+        p.typed.textContent = p.text.slice(0, j); p.rest.textContent = p.text.slice(j);
+        await sleep(/[.,]/.test(p.text[j - 1]) ? speed * 5 : speed * (0.7 + Math.random() * 0.6));
+      }
+    }
+    caret.remove(); el.innerHTML = job.html; el.removeAttribute('aria-label'); el.classList.add('tw-done');
+  }
+
+  var term = document.querySelector('.hero-term');
+  var body = term.querySelector('.body'), line = term.querySelector('.hero-line'), out = term.querySelector('.hero-cmd');
+  var keyRow = term.querySelector('.keys'), keys = keyRow.querySelectorAll('kbd'), status = term.querySelector('.status');
+  var request = line.textContent.slice(1), command = out.textContent.slice(1), done = status.innerHTML;
+  var text = document.createTextNode(''), cur = out.querySelector('.cursor');
+  out.remove();
+  line.textContent = ''; line.append(Object.assign(document.createElement('span'), { className: 'prompt', textContent: '$' }), text, cur);
+
+  var shown = ['', false];
+  function show(t, small) {
+    shown = [t, small]; text.data = t;
+    line.style.fontSize = small ? '.62em' : ''; line.style.lineHeight = small ? '1.6' : '';
+  }
+  function fit() { // reserve the tallest state so nothing below the terminal moves
+    var was = shown, h;
+    body.style.minHeight = '';
+    show(request); h = body.offsetHeight;
+    show(command, true); h = Math.max(h, body.offsetHeight);
+    show(was[0], was[1]); body.style.minHeight = h + 'px';
+  }
+  fit(); addEventListener('resize', fit);
+  status.innerHTML = '&nbsp;'; keyRow.classList.add('gone');
+
+  async function loop() {
+    for (;;) {
+      show(''); status.innerHTML = '&nbsp;';
+      await sleep(700);
+      for (var i = 1; i <= request.length; i++) { show(request.slice(0, i)); await sleep(28 + Math.random() * 45); }
+      await sleep(300);
+      keyRow.classList.remove('gone'); await sleep(700);
+      keys[0].classList.add('down'); await sleep(160);
+      keys[1].classList.add('down'); await sleep(220);
+      keys[0].classList.remove('down'); keys[1].classList.remove('down'); keyRow.classList.add('gone');
+      status.textContent = 'hey-shell: thinking...';
+      await sleep(1300);
+      show(command, true); status.innerHTML = done;
+      await sleep(5200);
+    }
+  }
+  var h1 = prep(document.querySelector('h1[data-type]')), lead = prep(document.querySelector('.lead[data-type]'));
+  (async function () {
+    await typeOnce(h1, 110); await typeOnce(lead, 65);
+    term.classList.add('ready'); await sleep(700); loop();
+  })();
+})();
 </script>
 </body>
 </html>
