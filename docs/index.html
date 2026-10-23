@@ -192,14 +192,14 @@ a.gh svg { width: 1.1em; height: 1.1em; flex: none; }
 footer { margin-top: 64px; border-top: 1px solid var(--line); padding: 28px 0 40px; font: 15px var(--mono); color: #6f7872; }
 footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 footer a:hover { color: var(--lime); }
-/* the repo link: a faint green line with a light running along it, solid green on hover */
-footer a.gh { position: relative; padding-bottom: 5px; }
-footer a.gh::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px;
+/* the logo and the repo link: a faint green line with a light running along it, solid green on hover */
+footer a.gh, .brand { position: relative; padding-bottom: 5px; }
+footer a.gh::after, .brand::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px;
   background: linear-gradient(90deg, transparent, var(--lime), transparent) no-repeat, color-mix(in srgb, var(--lime) 22%, transparent);
   background-size: 40% 100%, 100% 100%; animation: glint 2.8s ease-in-out infinite; transition: background-color .3s; }
-footer a.gh:hover::after { background-color: var(--lime); }
+footer a.gh:hover::after, .brand:hover::after { background-color: var(--lime); }
 @keyframes glint { from { background-position: -70% 0, 0 0; } to { background-position: 170% 0, 0 0; } }
-@media (prefers-reduced-motion: reduce) { footer a.gh::after { animation: none; background-position: 50% 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) { footer a.gh::after, .brand::after { animation: none; background-position: 50% 0, 0 0; } }
 
 @media (max-width: 960px) {
   .wrap { padding: 0 22px; }
