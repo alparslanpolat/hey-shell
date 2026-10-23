@@ -7,8 +7,8 @@
 <meta name="description" content="Type what you need in plain language, press your shortcut, review the shell command. Nothing runs automatically. bash, zsh and fish, with Claude Code, Codex CLI or Gemini CLI.">
 <meta property="og:title" content="hey-shell: your words, shell commands">
 <meta property="og:description" content="Type what you need, press your shortcut, review the command, hit Enter when ready.">
-<meta property="og:image" content="https://alparslanpolat.github.io/hey-shell/assets/preview.png">
-<meta property="og:url" content="https://alparslanpolat.github.io/hey-shell/">
+<meta property="og:image" content="https://hey-shell.com/assets/preview.png">
+<meta property="og:url" content="https://hey-shell.com/">
 <meta name="theme-color" content="#131615">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23131615'/%3E%3Cpath d='M10 9l8 7-8 7' fill='none' stroke='%23C6F56B' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
@@ -360,7 +360,7 @@ footer a:hover { color: var(--lime); }
       <span class="tag">ONE LINE · COPY AND PASTE</span>
       <div class="block">
         <button class="copy" type="button" data-copy>Copy</button>
-        <div id="install-cmd"><span>$ </span>curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash</div>
+        <div id="install-cmd"><span>$ </span>curl -fsSL https://hey-shell.com/install | bash</div>
       </div>
     </div>
     <div class="steps install-notes">
@@ -381,7 +381,7 @@ footer a:hover { color: var(--lime); }
 
 <script>
 document.querySelector('[data-copy]').addEventListener('click', async function () {
-  var text = 'curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash';
+  var text = 'curl -fsSL https://hey-shell.com/install | bash';
   try { await navigator.clipboard.writeText(text); this.textContent = 'Copied'; }
   catch (e) { this.textContent = 'Press Ctrl+C'; }
   setTimeout(() => { this.textContent = 'Copy'; }, 1800);

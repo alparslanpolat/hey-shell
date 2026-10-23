@@ -1,13 +1,13 @@
 #!/bin/sh
-# hey-shell one-line installer, served at https://alparslanpolat.github.io/hey-shell/install
+# hey-shell one-line installer, served at https://hey-shell.com/install
 #
-#   curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash
+#   curl -fsSL https://hey-shell.com/install | bash
 #
 # Clones the newest release of hey-shell (its highest vX.Y.Z tag, not whatever is on main) into ~/hey-shell, or
 # moves an existing install to it, then runs its installer, which asks for your key and aliases. Installer
 # flags go after `bash -s --`:
 #
-#   curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash -s -- --key alt+o --aliases --agent codex
+#   curl -fsSL https://hey-shell.com/install | bash -s -- --key alt+o --aliases --agent codex
 #
 # Env: HEY_SHELL_DIR (default: ~/hey-shell), HEY_SHELL_REPO (default: the GitHub repository; the tests use it),
 #      HEY_SHELL_REF (default: the newest release tag; a branch such as main installs the development version).

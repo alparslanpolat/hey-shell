@@ -67,10 +67,10 @@ The whole idea fits in one line: **type a request, press Ctrl+G, read the comman
 ## Install
 
 ```bash
-curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash
+curl -fsSL https://hey-shell.com/install | bash
 ```
 
-Then open a new terminal. That is all: it downloads the newest release of hey-shell (its latest `vX.Y.Z` tag, not the development branch) into `~/hey-shell`, or moves an existing install to it, and runs the installer, which asks two questions. To answer them up front, add the installer's flags: `curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash -s -- --key alt+o --aliases --agent codex`.
+Then open a new terminal. That is all: it downloads the newest release of hey-shell (its latest `vX.Y.Z` tag, not the development branch) into `~/hey-shell`, or moves an existing install to it, and runs the installer, which asks two questions. To answer them up front, add the installer's flags: `curl -fsSL https://hey-shell.com/install | bash -s -- --key alt+o --aliases --agent codex`.
 
 `curl … | bash` runs a script from the internet, which is exactly what hey-shell's own risk check rates HIGH. If you would rather read it first, [the script](docs/install) is about 40 lines, or install by hand:
 
