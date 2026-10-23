@@ -74,9 +74,36 @@ kbd.sm { font-size: 15px; padding: 2px 8px; border-width: 1px; }
 code.cmd { font: 22px var(--mono); background: #1a1f1c; border: 1px solid var(--line); border-radius: 10px; padding: 16px 24px; white-space: nowrap; }
 code.cmd b { color: var(--lime); font-weight: 500; }
 
+.examples { padding: 40px 0 0; }
+.ex-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 28px; }
+.ex { display: flex; flex-direction: column; }
+.ex .bar { padding: 12px 18px; }
+.ex .bar i { width: 11px; height: 11px; }
+.ex .bar em { font-size: 13px; }
+.ex-body { padding: 22px 24px 26px; font: 15px/1.6 var(--mono); display: grid; gap: 14px; align-content: start; flex: 1; }
+.ex-title { font: 600 14px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.ex-req { font-size: 16px; font-weight: 600; }
+.ex-req .prompt { margin-right: 10px; }
+.ex-req.old { color: var(--muted); font-weight: 400; }
+.ex-req em { font-style: normal; color: var(--text); }
+.ex-err { color: #ec6a5e; margin: -10px 0 0 20px; }
+.ex .keys { font-size: 13px; gap: 12px; }
+.ex kbd { font-size: 13px; padding: 4px 12px; border-radius: 7px; }
+.ex .keys small { font-size: 13px; margin-left: 0; }
+.ex-label { font: 600 11px var(--mono); letter-spacing: .06em; color: var(--lime); text-transform: uppercase; margin-bottom: -8px; }
+.ex-cmd { background: #1a1f1c; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px 10px 36px; text-indent: -22px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ex-cmd::before { content: "$"; color: var(--lime); display: inline-block; width: 22px; text-indent: 0; }
+.ex-meta { color: var(--muted); font-size: 13px; }
+.ex-meta .ok { color: #8fd16a; }
+.ex-meta .med { color: #f4a83a; }
+.ex-note { font-size: 13px; }
+.ex-note code { font: 13px var(--mono); background: #1a1f1c; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+.ex-out { color: var(--muted); font-size: 13px; white-space: pre; overflow-x: auto; }
+.examples > p.ex-caption { margin-top: 14px; font: 14px var(--mono); color: #6f7872; }
+
 .more { padding: 72px 0 0; }
-.more h2, .agents h2, .install h2 { font-size: 34px; letter-spacing: -.02em; }
-.more > p, .agents > p { margin-top: 10px; color: var(--muted); font-size: 19px; max-width: 760px; }
+.more h2, .agents h2, .install h2, .examples h2 { font-size: 34px; letter-spacing: -.02em; }
+.more > p, .agents > p, .examples > p { margin-top: 10px; color: var(--muted); font-size: 19px; max-width: 760px; }
 .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 28px; }
 .card { border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; background: rgba(255,255,255,.015); }
 .card h3 { font: 600 19px var(--mono); color: var(--lime); }
@@ -106,13 +133,15 @@ footer a:hover { color: var(--lime); }
   .wrap { padding: 0 22px; }
   .hero { grid-template-columns: 1fr; padding-top: 48px; }
   .steps { grid-template-columns: 1fr; gap: 36px; }
-  .grid { grid-template-columns: 1fr; }
+  .grid, .ex-grid { grid-template-columns: 1fr; }
+  .ex-body { padding: 18px 16px 22px; }
   .agent-row { grid-template-columns: 1fr; gap: 6px; }
   .cta { flex-direction: column; align-items: flex-start; }
   code.cmd { white-space: normal; word-break: break-all; font-size: 17px; }
   .body { font-size: 20px; padding: 28px 22px 34px; }
   nav { gap: 22px; }
 }
+@media (max-width: 520px) { nav a[href="#examples"] { display: none; } }
 @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } html { scroll-behavior: auto; } }
 </style>
 </head>
@@ -131,7 +160,7 @@ footer a:hover { color: var(--lime); }
 <header>
   <div class="wrap">
     <a class="brand" href="#top" aria-label="hey-shell home"><svg><use href="#logo"/></svg>hey-shell</a>
-    <nav><a href="#how">How it works</a><a href="#agents">Agents</a><a href="https://github.com/alparslanpolat/hey-shell">GitHub</a></nav>
+    <nav><a href="#how">How it works</a><a href="#examples">Examples</a><a href="#agents">Agents</a><a href="https://github.com/alparslanpolat/hey-shell">GitHub</a></nav>
   </div>
 </header>
 
@@ -158,6 +187,67 @@ footer a:hover { color: var(--lime); }
     <div class="step"><div class="num">01</div><h3>Ask naturally</h3><p>Describe what you need in plain language at your shell prompt.</p></div>
     <div class="step"><div class="num">02</div><h3>Use your shortcut</h3><p><kbd class="sm">Ctrl</kbd>+<kbd class="sm">G</kbd> by default. Choose your key during installation.</p></div>
     <div class="step"><div class="num">03</div><h3>Review &amp; run</h3><p>The risk and a failure check show under the command. Read or edit it, then press Enter. Nothing runs automatically.</p></div>
+  </section>
+
+  <section class="examples" id="examples">
+    <h2>See it work</h2>
+    <p>Four everyday requests, with the commands hey-shell actually returned.</p>
+    <div class="ex-grid">
+      <div class="term ex">
+        <div class="bar"><i></i><i></i><i></i><em>01 · disk space</em></div>
+        <div class="ex-body">
+          <div class="ex-title">Disk space</div>
+          <div class="ex-req"><span class="prompt">❯</span>Which folders take up the most space here?</div>
+          <div class="keys"><kbd>Ctrl + G</kbd><small>turn the request into a command</small></div>
+          <div class="ex-label">Suggested command · review before running</div>
+          <div class="ex-cmd">du -sh -- */ .[!.]*/ 2&gt;/dev/null | sort -hr | head -n 20</div>
+          <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
+          <div class="ex-out">after Enter:  5.9M   .git/
+              196K   docs/
+               88K   test/
+               40K   lib/</div>
+        </div>
+      </div>
+      <div class="term ex">
+        <div class="bar"><i></i><i></i><i></i><em>02 · port conflicts</em></div>
+        <div class="ex-body">
+          <div class="ex-title">Port conflicts</div>
+          <div class="ex-req"><span class="prompt">❯</span>Kill whatever is listening on port 3000</div>
+          <div class="keys"><kbd>Ctrl + G</kbd><small>turn the request into a command</small></div>
+          <div class="ex-label">Suggested command · review before running</div>
+          <div class="ex-cmd">lsof -ti :3000 | xargs kill</div>
+          <div class="ex-meta">Risk: <span class="med">MEDIUM</span> · Check: <span class="ok">No known issues</span><br>&nbsp;&nbsp;risk: terminates processes</div>
+        </div>
+      </div>
+      <div class="term ex">
+        <div class="bar"><i></i><i></i><i></i><em>03 · refine it</em></div>
+        <div class="ex-body">
+          <div class="ex-title">Refine it</div>
+          <div class="ex-req"><span class="prompt">❯</span>Find files bigger than 100 MB here</div>
+          <div class="ex-cmd">find . -type f -size +100M -exec ls -lh {} +</div>
+          <div class="ex-req old"><span class="prompt">❯</span>find . -type f -size +100M -exec ls -lh {} +  <em># only videos</em></div>
+          <div class="keys"><kbd>Ctrl + G</kbd><small>add a # note, press again: the command changes</small></div>
+          <div class="ex-label">Suggested command · review before running</div>
+          <div class="ex-cmd">find . -type f -size +100M \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.mkv' -o -iname '*.avi' -o -iname '*.webm' -o -iname '*.m4v' -o -iname '*.wmv' -o -iname '*.flv' \) -exec ls -lh {} +</div>
+          <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
+        </div>
+      </div>
+      <div class="term ex">
+        <div class="bar"><i></i><i></i><i></i><em>04 · fix a failed command</em></div>
+        <div class="ex-body">
+          <div class="ex-title">Fix a failed command</div>
+          <div class="ex-req old"><span class="prompt">❯</span>gti log --oneline -5</div>
+          <div class="ex-err">zsh: command not found: gti</div>
+          <div class="ex-req"><span class="prompt">❯</span>hsf</div>
+          <div class="keys"><kbd>Enter</kbd><small>hsf fixes your last failed command</small></div>
+          <div class="ex-label">Suggested fix · review before running</div>
+          <div class="ex-cmd">git log --oneline -5</div>
+          <div class="ex-note">The command had a typo: <code>gti</code> should be <code>git</code>.</div>
+          <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="ex-caption">Real output from Claude Haiku, in zsh. Nothing runs until you press Enter.</p>
   </section>
 
   <section class="more" id="more">
