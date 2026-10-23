@@ -54,6 +54,9 @@ h1 span { color: var(--lime); display: block; }
 .req { margin-top: 14px; font: 15px var(--mono); color: #6f7872; }
 .req a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 .req a:hover { color: var(--lime); }
+.req .ag { white-space: nowrap; }
+.req .ag svg { width: 1.15em; height: 1.15em; margin-right: .35em; vertical-align: -.22em; color: var(--text); }
+.req .ag .ag-claude { color: #D97757; }
 .body > div { overflow-wrap: anywhere; }
 .body > div:first-child { font-size: .8em; }
 .hero-cmd { font-size: .62em; line-height: 1.6; }
@@ -85,6 +88,11 @@ kbd { font: 500 22px var(--mono); border: 1.5px solid var(--lime); border-radius
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 24px 0 48px; }
 .steps > :nth-child(1) { --tint: #C6F56B; } .steps > :nth-child(2) { --tint: #5fd4c4; } .steps > :nth-child(3) { --tint: #f4bf4f; }
 .card.step { min-height: 0; }
+.step-num { display: block; font: 800 40px/1 var(--mono); color: var(--tint); text-shadow: 0 0 22px color-mix(in srgb, var(--tint) 45%, transparent); margin-bottom: 30px; }
+/* How it works: three numbered steps */
+#how { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#how .step { border-color: color-mix(in srgb, var(--tint) 55%, transparent); padding: 38px 32px; }
+#how .step h3 { font-size: clamp(18px, 1.75vw, 24px); }
 kbd.sm { font-size: 15px; padding: 2px 8px; border-width: 1px; }
 
 .cta { display: flex; align-items: center; justify-content: space-between; gap: 24px; border: 1px solid var(--line); border-radius: 14px; padding: 18px 28px; background: rgba(255,255,255,.015); }
@@ -146,6 +154,7 @@ code.cmd b { color: var(--lime); font-weight: 500; }
 .ex-meta { color: var(--muted); font-size: 13px; }
 .ex-meta .ok { color: #8fd16a; }
 .ex-meta .med { color: #f4a83a; }
+.ex-meta .high { color: #ec6a5e; font-weight: 700; }
 .ex-note .bad { color: #ec6a5e; }
 .ex-out .bad { color: #ec6a5e; }
 .ex-out .why { color: var(--text); }
@@ -205,6 +214,9 @@ footer a.gh:hover::after, .brand:hover::after { background-color: var(--lime); }
   .wrap { padding: 0 22px; }
   .hero { grid-template-columns: 1fr; padding-top: 48px; }
   .steps { grid-template-columns: 1fr; gap: 16px; }
+  #how { grid-template-columns: 1fr; }
+  #how .step { padding: 28px 24px; }
+  #how .step h3 { font-size: 24px; }
   .stage, .card { padding: 22px 18px; }
   .stage h3, .card h3 { font-size: 24px; }
   .card p, .stage-text p { font-size: 16px; }
@@ -217,6 +229,18 @@ footer a.gh:hover::after, .brand:hover::after { background-color: var(--lime); }
   code.cmd { white-space: normal; word-break: break-all; font-size: 17px; }
   .body { font-size: 20px; padding: 28px 22px 34px; }
   nav { gap: 22px; }
+}
+/* phones: each card keeps its own height and the carousel follows the one in front (set by the script) */
+@media (max-width: 600px) {
+  .car .carousel { align-items: start; transition: height .45s cubic-bezier(.2, .7, .2, 1); }
+  .car .carousel > * { overflow: hidden; }
+  .stage { padding: 18px 16px; gap: 16px; }
+  .stage h3 { font-size: 22px; }
+  .stage-text p { font-size: 15px; margin-top: 8px; }
+  .ex .bar { padding: 10px 14px; }
+  .ex-body { padding: 14px 14px 18px; font-size: 13px; gap: 12px; }
+  .ex-req { font-size: 14px; }
+  .ex-out { white-space: pre-wrap; overflow-wrap: anywhere; }
 }
 @media (max-width: 520px) { nav a[href^="#"]:not(.btn) { display: none; } nav a.gh span { display: none; } nav a.gh svg { width: 22px; height: 22px; } .brand { font-size: 20px; gap: 10px; white-space: nowrap; } nav { gap: 18px; } }
 @media (max-width: 360px) { h1 { font-size: 44px; } nav a:not(.btn) { display: none; } }
@@ -269,7 +293,7 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
       <p class="lead" data-type>Type what you need. Press your shortcut.<br>Review the command. <b>Hit Enter when ready.</b></p>
       <a class="btn lg" href="#install">Install hey-shell →</a>
       <div class="chips"><span class="chip">bash · zsh · fish</span><span class="chip">Linux · WSL2 · macOS</span></div>
-      <p class="req">Works with Claude Code, Codex CLI or Gemini CLI</p>
+      <p class="req">Works with <span class="ag"><svg class="ag-claude" aria-hidden="true"><use href="#i-claude"/></svg>Claude Code</span>, <span class="ag"><svg aria-hidden="true"><use href="#i-openai"/></svg>Codex CLI</span> or <span class="ag"><svg aria-hidden="true"><use href="#i-gemini"/></svg>Gemini CLI</span></p>
       <p class="req">hey-shell never runs the suggested command. What the agent itself can do while answering depends on <a href="#agents">which one you pick</a>.</p>
     </div>
     <div class="term hero-term" role="img" aria-label="Terminal: typing 'find files larger than 100 MB, excluding node_modules and .git, sorted by size', pressing Ctrl+G, and getting a find command on the prompt, not executed">
@@ -285,13 +309,13 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
   </section>
 
   <section class="steps" id="how">
-    <div class="card step"><div><span class="tag">01</span><h3>Ask naturally</h3></div><p>Describe what you need in plain language at your shell prompt.</p></div>
-    <div class="card step"><div><span class="tag">02</span><h3>Use your shortcut</h3></div><p><kbd class="sm">Ctrl</kbd>+<kbd class="sm">G</kbd> by default. Choose your key during installation.</p></div>
-    <div class="card step"><div><span class="tag">03</span><h3>Review &amp; run</h3></div><p>The risk and a failure check show under the command. Read or edit it, then press Enter. Nothing runs automatically.</p></div>
+    <div class="card step"><div><span class="step-num" aria-hidden="true">1</span><h3>Ask naturally</h3></div><p>Describe what you need in plain language at your shell prompt.</p></div>
+    <div class="card step"><div><span class="step-num" aria-hidden="true">2</span><h3>Use your shortcut</h3></div><p><kbd class="sm">Ctrl</kbd>+<kbd class="sm">G</kbd> by default. Choose your key during installation.</p></div>
+    <div class="card step"><div><span class="step-num" aria-hidden="true">3</span><h3>Review &amp; run</h3></div><p>The risk and a failure check show under the command. Read or edit it, then press Enter. Nothing runs automatically.</p></div>
   </section>
 
   <section class="examples" id="examples">
-    <div class="sec-head"><h2>See it work</h2><p>Six everyday requests, with what hey-shell actually returned.</p></div>
+    <div class="sec-head"><h2>See it work</h2><p><span data-count>Six</span> everyday requests, with what hey-shell actually returned.</p></div>
     <div class="carousel" aria-label="Examples">
       <article class="stage">
         <div class="stage-text"><span class="tag">01 / 06</span><h3>Disk space</h3><p>Ask in plain words and get a command you can read before it runs. This one includes hidden folders and lists the biggest first.</p></div>
@@ -343,14 +367,15 @@ if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matche
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>04 · fix a failed command</em></div>
           <div class="ex-body">
-            <div class="ex-req old"><span class="prompt">❯</span>gti log --oneline -5</div>
-            <div class="ex-err">zsh: command not found: gti</div>
+            <div class="ex-req old"><span class="prompt">❯</span>find . -name *.log -mtime +7 -delete</div>
+            <div class="ex-err">find: paths must precede expression: `b.log'<br>find: possible unquoted pattern after predicate `-name'?</div>
             <div class="ex-req"><span class="prompt">❯</span>hsf</div>
             <div class="keys"><kbd>Enter</kbd><small>hsf fixes your last failed command</small></div>
             <div class="ex-label">Suggested fix · review before running</div>
-            <div class="ex-cmd">git log --oneline -5</div>
-            <div class="ex-note">The command had a typo: <code>gti</code> should be <code>git</code>.</div>
-            <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
+            <div class="ex-cmd">find . -name '*.log' -mtime +7 -delete</div>
+            <div class="ex-note">The unquoted <code>*.log</code> was expanded by the shell into matching filenames before <code>find</code> ran, so <code>find</code> received extra arguments and exited with status 1. Quoting the pattern passes the literal <code>*.log</code> to <code>find</code>, which does the matching itself.</div>
+            <div class="ex-note"><span class="bad">Warning:</span> <code>-delete</code> permanently removes matching files older than 7 days under the current directory, and there is no undo.</div>
+            <div class="ex-meta">Risk: <span class="high">HIGH</span> · Check: <span class="ok">No known issues</span><br>&nbsp;&nbsp;risk: find that deletes files</div>
           </div>
         </div>
       </article>
@@ -448,6 +473,12 @@ document.querySelector('[data-copy]').addEventListener('click', async function (
   catch (e) { this.textContent = 'Press Ctrl+C'; }
   setTimeout(() => { this.textContent = 'Copy'; }, 1800);
 });
+// "Seven everyday requests": the number follows however many example cards there are
+(function () {
+  var n = document.querySelectorAll('#examples article.stage').length;
+  var words = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+  if (words[n]) document.querySelector('[data-count]').textContent = words[n];
+})();
 document.querySelectorAll('.carousel').forEach(function (track) {
   var cards = Array.prototype.slice.call(track.children), n = cards.length, active = 0, startX = null, swiped = false;
   var shell = document.createElement('div');
@@ -474,6 +505,15 @@ document.querySelectorAll('.carousel').forEach(function (track) {
     dots.appendChild(dot);
     card.addEventListener('click', function () { if (!swiped && i !== active) go(i); });
   });
+  var narrow = matchMedia('(max-width: 600px)');
+  function fit() { // phones: the track is as tall as the front card, and the cards beside it are cut to match
+    cards.forEach(function (card) { card.style.maxHeight = ''; });
+    if (!narrow.matches) { track.style.height = ''; return; }
+    var h = cards[active].offsetHeight;
+    track.style.height = h + 'px';
+    cards.forEach(function (card, i) { if (i !== active) card.style.maxHeight = h + 'px'; });
+  }
+  addEventListener('resize', fit);
   function go(i) {
     active = (i + n) % n;
     cards.forEach(function (card, i) {
@@ -488,6 +528,7 @@ document.querySelectorAll('.carousel').forEach(function (track) {
       card.setAttribute('aria-hidden', a ? 'true' : 'false');
       dots.children[i].setAttribute('aria-current', a ? 'false' : 'true');
     });
+    fit();
   }
   track.tabIndex = 0;
   track.addEventListener('keydown', function (e) {
