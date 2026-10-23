@@ -122,6 +122,8 @@ code.cmd b { color: var(--lime); font-weight: 500; }
 .ex-meta { color: var(--muted); font-size: 13px; }
 .ex-meta .ok { color: #8fd16a; }
 .ex-meta .med { color: #f4a83a; }
+.ex-out .bad { color: #ec6a5e; }
+.ex-out .why { color: var(--text); }
 .ex-note { font-size: 13px; }
 .ex-note code { font: 13px var(--mono); background: #1a1f1c; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
 .ex-out { color: var(--muted); font-size: 13px; white-space: pre; overflow-x: auto; }
@@ -228,10 +230,10 @@ footer a:hover { color: var(--lime); }
   </section>
 
   <section class="examples" id="examples">
-    <div class="sec-head"><h2>See it work</h2><p>Four everyday requests, with the commands hey-shell actually returned.</p></div>
+    <div class="sec-head"><h2>See it work</h2><p>Six everyday requests, with what hey-shell actually returned.</p></div>
     <div class="carousel" aria-label="Examples">
       <article class="stage">
-        <div class="stage-text"><span class="tag">01 / 04</span><h3>Disk space</h3><p>Ask in plain words and get a command you can read before it runs. This one includes hidden folders and lists the biggest first.</p></div>
+        <div class="stage-text"><span class="tag">01 / 06</span><h3>Disk space</h3><p>Ask in plain words and get a command you can read before it runs. This one includes hidden folders and lists the biggest first.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>01 · disk space</em></div>
           <div class="ex-body">
@@ -248,7 +250,7 @@ footer a:hover { color: var(--lime); }
         </div>
       </article>
       <article class="stage">
-        <div class="stage-text"><span class="tag">02 / 04</span><h3>Port conflicts</h3><p>Commands that change things are flagged. Killing processes is rated <span style="color:#f4a83a">MEDIUM</span>, so you see it before you press Enter.</p></div>
+        <div class="stage-text"><span class="tag">02 / 06</span><h3>Port conflicts</h3><p>Commands that change things are flagged. Killing processes is rated <span style="color:#f4a83a">MEDIUM</span>, so you see it before you press Enter.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>02 · port conflicts</em></div>
           <div class="ex-body">
@@ -261,7 +263,7 @@ footer a:hover { color: var(--lime); }
         </div>
       </article>
       <article class="stage">
-        <div class="stage-text"><span class="tag">03 / 04</span><h3>Refine it</h3><p>Not quite right? Add a <code># note</code> after the command and press your shortcut again. The command changes instead of starting over.</p></div>
+        <div class="stage-text"><span class="tag">03 / 06</span><h3>Refine it</h3><p>Not quite right? Add a <code># note</code> after the command and press your shortcut again. The command changes instead of starting over.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>03 · refine it</em></div>
           <div class="ex-body">
@@ -276,7 +278,7 @@ footer a:hover { color: var(--lime); }
         </div>
       </article>
       <article class="stage">
-        <div class="stage-text"><span class="tag">04 / 04</span><h3>Fix a failed command</h3><p>Run <code>hsf</code> right after a command fails. You get a corrected version on your next prompt, with what was wrong. Nothing is re-run.</p></div>
+        <div class="stage-text"><span class="tag">04 / 06</span><h3>Fix a failed command</h3><p>Run <code>hsf</code> right after a command fails. You get a corrected version on your next prompt, with what was wrong. Nothing is re-run.</p></div>
         <div class="term ex">
           <div class="bar"><i></i><i></i><i></i><em>04 · fix a failed command</em></div>
           <div class="ex-body">
@@ -291,8 +293,34 @@ footer a:hover { color: var(--lime); }
           </div>
         </div>
       </article>
+      <article class="stage">
+        <div class="stage-text"><span class="tag">05 / 06</span><h3>Explain it</h3><p>Ask with <code>hse</code> to get the command with a short explanation of what it does and what to watch out for. The command is then left on your next prompt.</p></div>
+        <div class="term ex">
+          <div class="bar"><i></i><i></i><i></i><em>05 · explain it</em></div>
+          <div class="ex-body">
+            <div class="ex-req"><span class="prompt">❯</span>hse undo my last git commit but keep the changes</div>
+            <div class="keys"><kbd>Enter</kbd><small>the command, with what it does</small></div>
+            <div class="ex-label">Suggested command · review before running</div>
+            <div class="ex-cmd">git reset --soft HEAD~1</div>
+            <div class="ex-note">This moves the branch back one commit and leaves that commit's changes staged, so you can recommit them. It only works if the last commit is not yet pushed; if it is, pushing again will require a force push.</div>
+            <div class="ex-meta">Risk: <span class="med">MEDIUM</span> · Check: <span class="ok">No known issues</span><br>&nbsp;&nbsp;risk: changes git history or a remote</div>
+          </div>
+        </div>
+      </article>
+      <article class="stage">
+        <div class="stage-text"><span class="tag">06 / 06</span><h3>Check before you run</h3><p>Got a command from somewhere? <code>hsc</code> looks for known reasons it would fail: syntax errors, missing programs, no git repo, no tmux server. It never runs the command. Here, from a shell with no tmux running.</p></div>
+        <div class="term ex">
+          <div class="bar"><i></i><i></i><i></i><em>06 · check before you run</em></div>
+          <div class="ex-body">
+            <div class="ex-req"><span class="prompt">❯</span>hsc "tmux split-window -h"</div>
+            <div class="keys"><kbd>Enter</kbd><small>checked, not run</small></div>
+            <div class="ex-out"><span class="bad">fail</span>
+<span class="why">no tmux server is running; start tmux first</span></div>
+          </div>
+        </div>
+      </article>
     </div>
-    <p class="ex-caption">Real output with the default agent (Claude Code, Haiku model), recorded in zsh. bash and fish work the same way, and so do Codex CLI and Gemini CLI; answers vary by agent and model. Nothing runs until you press Enter.</p>
+    <p class="ex-caption">Real output with the default agent (Claude Code, Haiku model). bash, zsh and fish work the same way, and so do Codex CLI and Gemini CLI; answers vary by agent and model. Nothing runs until you press Enter.</p>
   </section>
 
   <section class="more" id="more">
