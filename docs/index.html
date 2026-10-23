@@ -23,7 +23,7 @@
   --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 * { box-sizing: border-box; margin: 0; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
 body {
   background: var(--bg); color: var(--text); font-family: var(--sans);
   line-height: 1.5; -webkit-font-smoothing: antialiased;
@@ -35,8 +35,11 @@ header { border-bottom: 1px solid var(--line); }
 header .wrap { display: flex; align-items: center; justify-content: space-between; height: 76px; }
 .brand { display: flex; align-items: center; gap: 16px; font: 600 24px var(--mono); letter-spacing: .04em; }
 .brand svg { width: 38px; height: 38px; }
-nav { display: flex; gap: 40px; font: 16px var(--mono); color: var(--muted); }
+nav { display: flex; align-items: center; gap: 40px; font: 16px var(--mono); color: var(--muted); }
 nav a:hover { color: var(--lime); }
+.btn { display: inline-block; font: 600 16px var(--mono); color: var(--bg); background: var(--lime); border: 1px solid var(--lime); border-radius: 10px; padding: 8px 18px; transition: background .2s, color .2s; }
+nav a.btn:hover, .btn:hover { background: transparent; color: var(--lime); }
+.btn.lg { font-size: 18px; padding: 14px 28px; border-radius: 12px; margin-top: 34px; }
 
 .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; padding: 72px 0 56px; }
 h1 { font-size: clamp(52px, 7.4vw, 88px); line-height: .98; font-weight: 800; letter-spacing: -.045em; }
@@ -59,13 +62,11 @@ kbd { font: 500 22px var(--mono); border: 1.5px solid var(--lime); border-radius
 .keys small { font-size: 17px; color: var(--muted); margin-left: 8px; }
 .cursor { display: inline-block; width: 15px; height: 30px; background: var(--text); vertical-align: -5px; margin-left: 8px; animation: blink 1.1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
-.status { border-top: 1px solid var(--line); padding: 16px 32px; font: 15px var(--mono); color: var(--muted); }
+.status { border-top: 1px solid var(--line); padding: 16px 32px; font: 13px var(--mono); color: var(--muted); }
 
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 56px; padding: 24px 0 48px; }
-.num { display: flex; align-items: center; gap: 22px; font: 18px var(--mono); color: var(--lime); }
-.num::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.step h3 { margin-top: 26px; font-size: 28px; font-weight: 700; letter-spacing: -.01em; }
-.step p { margin-top: 12px; color: var(--muted); font-size: 19px; max-width: 360px; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 24px 0 48px; }
+.steps > :nth-child(1) { --tint: #C6F56B; } .steps > :nth-child(2) { --tint: #5fd4c4; } .steps > :nth-child(3) { --tint: #f4bf4f; }
+.card.step { min-height: 0; }
 kbd.sm { font-size: 15px; padding: 2px 8px; border-width: 1px; }
 
 .cta { display: flex; align-items: center; justify-content: space-between; gap: 24px; border: 1px solid var(--line); border-radius: 14px; padding: 18px 28px; background: rgba(255,255,255,.015); }
@@ -75,13 +76,38 @@ code.cmd { font: 22px var(--mono); background: #1a1f1c; border: 1px solid var(--
 code.cmd b { color: var(--lime); font-weight: 500; }
 
 .examples { padding: 40px 0 0; }
-.ex-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 28px; }
+.sec-head p { margin-top: 10px; color: var(--muted); font-size: 19px; max-width: 760px; }
+/* without the script the cards are a row you scroll sideways */
+.carousel { display: grid; grid-auto-flow: column; grid-auto-columns: min(600px, 88%); gap: 20px; margin-top: 32px; padding-bottom: 12px; overflow-x: auto; }
+.car-more { grid-auto-columns: min(420px, 84%); }
+/* with it, a coverflow: the active card in front, its neighbours smaller and turned away on either side (set by the script) */
+.car { position: relative; margin-top: 28px; padding-top: 12px; overflow-x: clip; }
+.car .carousel { grid-auto-flow: row; grid-auto-columns: auto; justify-items: center; margin: 0; padding: 0; overflow: visible; perspective: 1600px; touch-action: pan-y; }
+.car .carousel > * { grid-area: 1 / 1; width: min(600px, 88%); transition: transform .5s cubic-bezier(.2, .7, .2, 1), opacity .5s; }
+.car .car-more > * { width: min(440px, 80%); }
+.car .carousel > *::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: #000; opacity: var(--dim, 0); transition: opacity .5s; pointer-events: none; }
+.car-btn { position: absolute; top: calc(50% - 46px); z-index: 20; width: 56px; height: 56px; border-radius: 50%; border: 1px solid #3a413d; background: #232825; color: var(--text); font: 22px var(--mono); cursor: pointer; }
+.car-btn:hover { border-color: var(--lime); color: var(--lime); }
+.car-btn.prev { left: 0; } .car-btn.next { right: 0; }
+.car-dots { display: flex; justify-content: center; gap: 10px; margin-top: 26px; }
+.car-dots button { width: 10px; height: 10px; padding: 0; border: 0; border-radius: 5px; background: #3a413d; cursor: pointer; transition: width .3s, background .3s; }
+.car-dots button[aria-current="true"] { width: 28px; background: var(--lime); }
+.carousel:focus-visible { outline: 2px solid var(--lime); outline-offset: 6px; border-radius: 24px; }
+/* each card gets its own tint, cycling through six */
+.carousel > :nth-child(6n+1) { --tint: #C6F56B; } .carousel > :nth-child(6n+2) { --tint: #5fd4c4; } .carousel > :nth-child(6n+3) { --tint: #f4bf4f; }
+.carousel > :nth-child(6n+4) { --tint: #a78bfa; } .carousel > :nth-child(6n+5) { --tint: #6ab0f5; } .carousel > :nth-child(6n+6) { --tint: #ec8a7e; }
+.stage, .card { position: relative; border-radius: 24px; border: 1px solid color-mix(in srgb, var(--tint) 30%, transparent); background: var(--panel); background: linear-gradient(155deg, color-mix(in srgb, var(--tint) 16%, var(--panel)), var(--panel) 65%); box-shadow: 0 20px 50px rgba(0,0,0,.5), 0 0 60px color-mix(in srgb, var(--tint) 8%, transparent); }
+.stage { padding: 28px; display: flex; flex-direction: column; gap: 22px; }
+.tag { font: 600 13px var(--mono); color: var(--tint); letter-spacing: .08em; }
+.stage h3, .card h3 { margin-top: 10px; font: 800 30px/1.02 var(--sans); text-transform: uppercase; letter-spacing: -.01em; color: var(--text); }
+.stage-text p { margin-top: 12px; color: var(--muted); font-size: 17px; }
+.stage-text code { font: 15px var(--mono); color: var(--text); background: #1a1f1c; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+.stage .term { flex: 1; box-shadow: none; }
 .ex { display: flex; flex-direction: column; }
 .ex .bar { padding: 12px 18px; }
 .ex .bar i { width: 11px; height: 11px; }
 .ex .bar em { font-size: 13px; }
 .ex-body { padding: 22px 24px 26px; font: 15px/1.6 var(--mono); display: grid; gap: 14px; align-content: start; flex: 1; }
-.ex-title { font: 600 14px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .ex-req { font-size: 16px; font-weight: 600; }
 .ex-req .prompt { margin-right: 10px; }
 .ex-req.old { color: var(--muted); font-weight: 400; }
@@ -99,29 +125,34 @@ code.cmd b { color: var(--lime); font-weight: 500; }
 .ex-note { font-size: 13px; }
 .ex-note code { font: 13px var(--mono); background: #1a1f1c; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
 .ex-out { color: var(--muted); font-size: 13px; white-space: pre; overflow-x: auto; }
-.examples > p.ex-caption { margin-top: 14px; font: 14px var(--mono); color: #6f7872; }
+.ex-caption { margin-top: 22px; font: 14px var(--mono); color: #6f7872; }
 
 .more { padding: 72px 0 0; }
 .more h2, .agents h2, .install h2, .examples h2 { font-size: 34px; letter-spacing: -.02em; }
-.more > p, .agents > p, .examples > p { margin-top: 10px; color: var(--muted); font-size: 19px; max-width: 760px; }
-.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 28px; }
-.card { border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; background: rgba(255,255,255,.015); }
-.card h3 { font: 600 19px var(--mono); color: var(--lime); }
-.card p { margin-top: 8px; color: var(--muted); font-size: 17px; }
+.agents > p { margin-top: 10px; color: var(--muted); font-size: 19px; max-width: 760px; }
+.card { padding: 34px 32px; min-height: 300px; display: flex; flex-direction: column; gap: 16px; }
+.card h3 { font-size: 28px; }
+.card p { color: var(--muted); font-size: 18px; }
 .card code, .agents code, .install code { font: 15px var(--mono); color: var(--text); background: #1a1f1c; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
 .agents { padding: 72px 0 0; }
-.agent-table { margin-top: 24px; display: grid; gap: 12px; }
-.agent-row { display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: baseline; border: 1px solid var(--line); border-radius: 12px; padding: 16px 22px; }
-.agent-row b { font: 600 18px var(--mono); color: var(--lime); }
-.agent-row b small { display: block; font: 14px var(--mono); color: var(--muted); margin-top: 2px; }
-.agent-row p { color: var(--muted); font-size: 17px; }
-.agent-row p strong { color: var(--text); font-weight: 600; }
+/* agent names are the values passed to --agent, so they keep their case */
+.agent-card h3 { font: 700 34px var(--mono); text-transform: none; letter-spacing: 0; }
+.agent-card small { display: block; margin-top: 4px; font: 15px var(--mono); color: var(--muted); }
+.agent-card p strong { color: var(--text); font-weight: 600; }
 .install { padding: 72px 0 24px; }
 .install > p { margin-top: 10px; color: var(--muted); font-size: 19px; }
 .block { position: relative; margin-top: 26px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px 28px; font: 18px/1.9 var(--mono); overflow-x: auto; }
 .block span { color: var(--lime); user-select: none; }
 .copy { position: absolute; top: 14px; right: 14px; font: 14px var(--mono); color: var(--text); background: transparent; border: 1px solid #4a524e; border-radius: 8px; padding: 6px 14px; cursor: pointer; }
 .copy:hover { border-color: var(--lime); color: var(--lime); }
+.card.install-main { --tint: #C6F56B; min-height: 0; margin-top: 26px; padding: 26px; gap: 14px; }
+.install-main .block { margin-top: 0; }
+.install-notes { padding: 20px 0 0; }
+.install-notes > :nth-child(1) { --tint: #a78bfa; } .install-notes > :nth-child(2) { --tint: #6ab0f5; } .install-notes > :nth-child(3) { --tint: #ec8a7e; }
+.install-notes h3 { font-size: 24px; }
+.install-notes p { font-size: 17px; }
+.install-notes code { overflow-wrap: anywhere; }
+.install-notes a { color: var(--tint); }
 .safe { margin-top: 18px; color: #6f7872; font: 15px var(--mono); }
 .safe a { color: var(--lime); }
 
@@ -132,17 +163,23 @@ footer a:hover { color: var(--lime); }
 @media (max-width: 960px) {
   .wrap { padding: 0 22px; }
   .hero { grid-template-columns: 1fr; padding-top: 48px; }
-  .steps { grid-template-columns: 1fr; gap: 36px; }
-  .grid, .ex-grid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; gap: 16px; }
+  .stage, .card { padding: 22px 18px; }
+  .stage h3, .card h3 { font-size: 24px; }
+  .card p, .stage-text p { font-size: 16px; }
+  .car-btn { width: 44px; height: 44px; font-size: 18px; }
+  .card.install-main { padding: 18px; }
+  .install-main .block { padding: 54px 16px 16px; font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
+  .ex .bar em { display: none; }
   .ex-body { padding: 18px 16px 22px; }
-  .agent-row { grid-template-columns: 1fr; gap: 6px; }
   .cta { flex-direction: column; align-items: flex-start; }
   code.cmd { white-space: normal; word-break: break-all; font-size: 17px; }
   .body { font-size: 20px; padding: 28px 22px 34px; }
   nav { gap: 22px; }
 }
-@media (max-width: 520px) { nav a[href="#examples"] { display: none; } }
-@media (prefers-reduced-motion: reduce) { .cursor { animation: none; } html { scroll-behavior: auto; } }
+@media (max-width: 520px) { nav a[href^="#"]:not(.btn) { display: none; } .brand { font-size: 20px; gap: 10px; white-space: nowrap; } nav { gap: 18px; } }
+@media (max-width: 360px) { h1 { font-size: 44px; } nav a:not(.btn) { display: none; } }
+@media (prefers-reduced-motion: reduce) { .car .carousel > *, .car .carousel > *::after, .car-dots button { transition: none; } .cursor { animation: none; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
@@ -160,7 +197,7 @@ footer a:hover { color: var(--lime); }
 <header>
   <div class="wrap">
     <a class="brand" href="#top" aria-label="hey-shell home"><svg><use href="#logo"/></svg>hey-shell</a>
-    <nav><a href="#how">How it works</a><a href="#examples">Examples</a><a href="#agents">Agents</a><a href="https://github.com/alparslanpolat/hey-shell">GitHub</a></nav>
+    <nav><a href="#how">How it works</a><a href="#examples">Examples</a><a href="#agents">Agents</a><a href="https://github.com/alparslanpolat/hey-shell">GitHub</a><a class="btn" href="#install">Install</a></nav>
   </div>
 </header>
 
@@ -169,6 +206,7 @@ footer a:hover { color: var(--lime); }
     <div>
       <h1>Your words.<span>Shell commands.</span></h1>
       <p class="lead">Type what you need. Press your shortcut.<br>Review the command. <b>Hit Enter when ready.</b></p>
+      <a class="btn lg" href="#install">Install hey-shell →</a>
       <div class="chips"><span class="chip">bash · zsh · fish</span><span class="chip">Linux · WSL2 · macOS</span></div>
       <p class="req">Works with Claude Code, Codex CLI or Gemini CLI</p>
     </div>
@@ -184,94 +222,100 @@ footer a:hover { color: var(--lime); }
   </section>
 
   <section class="steps" id="how">
-    <div class="step"><div class="num">01</div><h3>Ask naturally</h3><p>Describe what you need in plain language at your shell prompt.</p></div>
-    <div class="step"><div class="num">02</div><h3>Use your shortcut</h3><p><kbd class="sm">Ctrl</kbd>+<kbd class="sm">G</kbd> by default. Choose your key during installation.</p></div>
-    <div class="step"><div class="num">03</div><h3>Review &amp; run</h3><p>The risk and a failure check show under the command. Read or edit it, then press Enter. Nothing runs automatically.</p></div>
+    <div class="card step"><div><span class="tag">01</span><h3>Ask naturally</h3></div><p>Describe what you need in plain language at your shell prompt.</p></div>
+    <div class="card step"><div><span class="tag">02</span><h3>Use your shortcut</h3></div><p><kbd class="sm">Ctrl</kbd>+<kbd class="sm">G</kbd> by default. Choose your key during installation.</p></div>
+    <div class="card step"><div><span class="tag">03</span><h3>Review &amp; run</h3></div><p>The risk and a failure check show under the command. Read or edit it, then press Enter. Nothing runs automatically.</p></div>
   </section>
 
   <section class="examples" id="examples">
-    <h2>See it work</h2>
-    <p>Four everyday requests, with the commands hey-shell actually returned.</p>
-    <div class="ex-grid">
-      <div class="term ex">
-        <div class="bar"><i></i><i></i><i></i><em>01 · disk space</em></div>
-        <div class="ex-body">
-          <div class="ex-title">Disk space</div>
-          <div class="ex-req"><span class="prompt">❯</span>Which folders take up the most space here?</div>
-          <div class="keys"><kbd>Ctrl + G</kbd><small>turn the request into a command</small></div>
-          <div class="ex-label">Suggested command · review before running</div>
-          <div class="ex-cmd">du -sh -- */ .[!.]*/ 2&gt;/dev/null | sort -hr | head -n 20</div>
-          <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
-          <div class="ex-out">after Enter:  5.9M   .git/
+    <div class="sec-head"><h2>See it work</h2><p>Four everyday requests, with the commands hey-shell actually returned.</p></div>
+    <div class="carousel" aria-label="Examples">
+      <article class="stage">
+        <div class="stage-text"><span class="tag">01 / 04</span><h3>Disk space</h3><p>Ask in plain words and get a command you can read before it runs. This one includes hidden folders and lists the biggest first.</p></div>
+        <div class="term ex">
+          <div class="bar"><i></i><i></i><i></i><em>01 · disk space</em></div>
+          <div class="ex-body">
+            <div class="ex-req"><span class="prompt">❯</span>Which folders take up the most space here?</div>
+            <div class="keys"><kbd>Ctrl + G</kbd><small>turn the request into a command</small></div>
+            <div class="ex-label">Suggested command · review before running</div>
+            <div class="ex-cmd">du -sh -- */ .[!.]*/ 2&gt;/dev/null | sort -hr | head -n 20</div>
+            <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
+            <div class="ex-out">after Enter:  5.9M   .git/
               196K   docs/
                88K   test/
                40K   lib/</div>
+          </div>
         </div>
-      </div>
-      <div class="term ex">
-        <div class="bar"><i></i><i></i><i></i><em>02 · port conflicts</em></div>
-        <div class="ex-body">
-          <div class="ex-title">Port conflicts</div>
-          <div class="ex-req"><span class="prompt">❯</span>Kill whatever is listening on port 3000</div>
-          <div class="keys"><kbd>Ctrl + G</kbd><small>turn the request into a command</small></div>
-          <div class="ex-label">Suggested command · review before running</div>
-          <div class="ex-cmd">lsof -ti :3000 | xargs kill</div>
-          <div class="ex-meta">Risk: <span class="med">MEDIUM</span> · Check: <span class="ok">No known issues</span><br>&nbsp;&nbsp;risk: terminates processes</div>
+      </article>
+      <article class="stage">
+        <div class="stage-text"><span class="tag">02 / 04</span><h3>Port conflicts</h3><p>Commands that change things are flagged. Killing processes is rated <span style="color:#f4a83a">MEDIUM</span>, so you see it before you press Enter.</p></div>
+        <div class="term ex">
+          <div class="bar"><i></i><i></i><i></i><em>02 · port conflicts</em></div>
+          <div class="ex-body">
+            <div class="ex-req"><span class="prompt">❯</span>Kill whatever is listening on port 3000</div>
+            <div class="keys"><kbd>Ctrl + G</kbd><small>turn the request into a command</small></div>
+            <div class="ex-label">Suggested command · review before running</div>
+            <div class="ex-cmd">lsof -ti :3000 | xargs kill</div>
+            <div class="ex-meta">Risk: <span class="med">MEDIUM</span> · Check: <span class="ok">No known issues</span><br>&nbsp;&nbsp;risk: terminates processes</div>
+          </div>
         </div>
-      </div>
-      <div class="term ex">
-        <div class="bar"><i></i><i></i><i></i><em>03 · refine it</em></div>
-        <div class="ex-body">
-          <div class="ex-title">Refine it</div>
-          <div class="ex-req"><span class="prompt">❯</span>Find files bigger than 100 MB here</div>
-          <div class="ex-cmd">find . -type f -size +100M -exec ls -lh {} +</div>
-          <div class="ex-req old"><span class="prompt">❯</span>find . -type f -size +100M -exec ls -lh {} +  <em># only videos</em></div>
-          <div class="keys"><kbd>Ctrl + G</kbd><small>add a # note, press again: the command changes</small></div>
-          <div class="ex-label">Suggested command · review before running</div>
-          <div class="ex-cmd">find . -type f -size +100M \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.mkv' -o -iname '*.avi' -o -iname '*.webm' -o -iname '*.m4v' -o -iname '*.wmv' -o -iname '*.flv' \) -exec ls -lh {} +</div>
-          <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
+      </article>
+      <article class="stage">
+        <div class="stage-text"><span class="tag">03 / 04</span><h3>Refine it</h3><p>Not quite right? Add a <code># note</code> after the command and press your shortcut again. The command changes instead of starting over.</p></div>
+        <div class="term ex">
+          <div class="bar"><i></i><i></i><i></i><em>03 · refine it</em></div>
+          <div class="ex-body">
+            <div class="ex-req"><span class="prompt">❯</span>Find files bigger than 100 MB here</div>
+            <div class="ex-cmd">find . -type f -size +100M -exec ls -lh {} +</div>
+            <div class="ex-req old"><span class="prompt">❯</span>find . -type f -size +100M -exec ls -lh {} +  <em># only videos</em></div>
+            <div class="keys"><kbd>Ctrl + G</kbd><small>add a # note, press again: the command changes</small></div>
+            <div class="ex-label">Suggested command · review before running</div>
+            <div class="ex-cmd">find . -type f -size +100M \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.mkv' -o -iname '*.avi' -o -iname '*.webm' -o -iname '*.m4v' -o -iname '*.wmv' -o -iname '*.flv' \) -exec ls -lh {} +</div>
+            <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
+          </div>
         </div>
-      </div>
-      <div class="term ex">
-        <div class="bar"><i></i><i></i><i></i><em>04 · fix a failed command</em></div>
-        <div class="ex-body">
-          <div class="ex-title">Fix a failed command</div>
-          <div class="ex-req old"><span class="prompt">❯</span>gti log --oneline -5</div>
-          <div class="ex-err">zsh: command not found: gti</div>
-          <div class="ex-req"><span class="prompt">❯</span>hsf</div>
-          <div class="keys"><kbd>Enter</kbd><small>hsf fixes your last failed command</small></div>
-          <div class="ex-label">Suggested fix · review before running</div>
-          <div class="ex-cmd">git log --oneline -5</div>
-          <div class="ex-note">The command had a typo: <code>gti</code> should be <code>git</code>.</div>
-          <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
+      </article>
+      <article class="stage">
+        <div class="stage-text"><span class="tag">04 / 04</span><h3>Fix a failed command</h3><p>Run <code>hsf</code> right after a command fails. You get a corrected version on your next prompt, with what was wrong. Nothing is re-run.</p></div>
+        <div class="term ex">
+          <div class="bar"><i></i><i></i><i></i><em>04 · fix a failed command</em></div>
+          <div class="ex-body">
+            <div class="ex-req old"><span class="prompt">❯</span>gti log --oneline -5</div>
+            <div class="ex-err">zsh: command not found: gti</div>
+            <div class="ex-req"><span class="prompt">❯</span>hsf</div>
+            <div class="keys"><kbd>Enter</kbd><small>hsf fixes your last failed command</small></div>
+            <div class="ex-label">Suggested fix · review before running</div>
+            <div class="ex-cmd">git log --oneline -5</div>
+            <div class="ex-note">The command had a typo: <code>gti</code> should be <code>git</code>.</div>
+            <div class="ex-meta">Risk: none recognized · Check: <span class="ok">No known issues</span></div>
+          </div>
         </div>
-      </div>
+      </article>
     </div>
-    <p class="ex-caption">Real output from Claude Haiku, in zsh. Nothing runs until you press Enter.</p>
+    <p class="ex-caption">Real output with the default agent (Claude Code, Haiku model), recorded in zsh. bash and fish work the same way, and so do Codex CLI and Gemini CLI; answers vary by agent and model. Nothing runs until you press Enter.</p>
   </section>
 
   <section class="more" id="more">
-    <h2>When you need more</h2>
-    <p>None of this is needed for the main flow. It is there when a command is not quite right, or fails.</p>
-    <div class="grid">
-      <div class="card"><h3>Refine it</h3><p>Not quite right? Add <code># only .ts files</code> after the command and press your shortcut again. It changes the command instead of starting over.</p></div>
-      <div class="card"><h3>Fix a failed command</h3><p>Run <code>hsf</code> right after a command fails. You get a corrected version on your next prompt, with what was wrong. Nothing is re-run.</p></div>
-      <div class="card"><h3>Explain any command</h3><p><code>hse &lt;request&gt;</code> adds a short explanation, and <code>hsw "&lt;command&gt;"</code> explains a command you found somewhere, before you run it.</p></div>
-      <div class="card"><h3>Fits your setup</h3><p>The agent is told which tools you have (<code>rg</code>, <code>fd</code>, <code>jq</code>…) and what the project is (pnpm, Makefile targets, compose). Names only, never file contents.</p></div>
-      <div class="card"><h3>Risk you can see</h3><p>Deletes, force-pushes, overwrites, cloud deletes and download-and-run (<code>curl … | /bin/bash</code>) are flagged in amber or red. Anything else shows <code>Risk: none recognized</code>: no known pattern matched, which is not the same as safe.</p></div>
-      <div class="card"><h3>A check before you run</h3><p>Missing programs, syntax errors and wrong context (no git repo, no tmux server) show as <code>Check: LIKELY FAIL</code>. It never runs the command.</p></div>
-      <div class="card"><h3>Private by default</h3><p>Nothing is logged unless you turn history on, and then only for you. Your folder is sent as <code>~/project</code>, without your user name.</p></div>
-      <div class="card"><h3>bash, zsh and fish</h3><p>The same shortcut and commands in all three, with commands written for your shell: <code>set -gx</code> in fish, <code>export</code> in bash and zsh.</p></div>
+    <div class="sec-head"><h2>When you need more</h2><p>None of this is needed for the main flow. It is there when a command is not quite right, or fails.</p></div>
+    <div class="carousel car-more" aria-label="Features">
+      <div class="card"><div><span class="tag">01</span><h3>Refine it</h3></div><p>Not quite right? Add <code># only .ts files</code> after the command and press your shortcut again. It changes the command instead of starting over.</p></div>
+      <div class="card"><div><span class="tag">02</span><h3>Fix a failed command</h3></div><p>Run <code>hsf</code> right after a command fails. You get a corrected version on your next prompt, with what was wrong. Nothing is re-run.</p></div>
+      <div class="card"><div><span class="tag">03</span><h3>Explain any command</h3></div><p><code>hse &lt;request&gt;</code> adds a short explanation, and <code>hsw "&lt;command&gt;"</code> explains a command you found somewhere, before you run it.</p></div>
+      <div class="card"><div><span class="tag">04</span><h3>Fits your setup</h3></div><p>The agent is told which tools you have (<code>rg</code>, <code>fd</code>, <code>jq</code>…) and what the project is (pnpm, Makefile targets, compose). Names only, never file contents.</p></div>
+      <div class="card"><div><span class="tag">05</span><h3>Risk you can see</h3></div><p>Deletes, force-pushes, overwrites, cloud deletes and download-and-run (<code>curl … | /bin/bash</code>) are flagged in amber or red. Anything else shows <code>Risk: none recognized</code>: no known pattern matched, which is not the same as safe.</p></div>
+      <div class="card"><div><span class="tag">06</span><h3>A check before you run</h3></div><p>Missing programs, syntax errors and wrong context (no git repo, no tmux server) show as <code>Check: LIKELY FAIL</code>. It never runs the command.</p></div>
+      <div class="card"><div><span class="tag">07</span><h3>Private by default</h3></div><p>Nothing is logged unless you turn history on, and then only for you. Your folder is sent as <code>~/project</code>, without your user name.</p></div>
+      <div class="card"><div><span class="tag">08</span><h3>bash, zsh and fish</h3></div><p>The same shortcut and commands in all three, with commands written for your shell: <code>set -gx</code> in fish, <code>export</code> in bash and zsh.</p></div>
     </div>
   </section>
 
   <section class="agents" id="agents">
     <h2>Choose your agent</h2>
     <p>hey-shell asks the AI agent CLI you already use and are logged in to, and never runs what comes back. Agents can use their own tools while they answer, so here is exactly what hey-shell restricts for each:</p>
-    <div class="agent-table">
-      <div class="agent-row"><b>claude<small>Claude Code · default</small></b><p><strong>Text only.</strong> No tools, no MCP servers, no saved session.</p></div>
-      <div class="agent-row"><b>codex<small>OpenAI Codex CLI</small></b><p><strong>No writes.</strong> A read-only sandbox your Codex config cannot loosen. It may read files in the folder while answering.</p></div>
-      <div class="agent-row"><b>gemini<small>Google Gemini CLI · experimental</small></b><p><strong>Not restricted by hey-shell.</strong> Gemini CLI has no documented way to turn its tools off, so this relies on its own defaults.</p></div>
+    <div class="carousel car-more" aria-label="Agents">
+      <div class="card agent-card"><div><span class="tag">01 · DEFAULT</span><h3>claude</h3><small>Claude Code</small></div><p><strong>Text only.</strong> No tools, no MCP servers, no saved session.</p></div>
+      <div class="card agent-card"><div><span class="tag">02</span><h3>codex</h3><small>OpenAI Codex CLI</small></div><p><strong>No writes.</strong> A read-only sandbox your Codex config cannot loosen. It may read files in the folder while answering.</p></div>
+      <div class="card agent-card"><div><span class="tag">03 · EXPERIMENTAL</span><h3>gemini</h3><small>Google Gemini CLI</small></div><p><strong>Not restricted by hey-shell.</strong> Gemini CLI has no documented way to turn its tools off, so this relies on its own defaults.</p></div>
     </div>
     <div class="block"><span>$ </span>~/hey-shell/install.sh --agent codex</div>
   </section>
@@ -284,12 +328,18 @@ footer a:hover { color: var(--lime); }
   <section class="install" id="install">
     <h2>Install</h2>
     <p>One line. It downloads the newest release and asks for your key and short aliases. Then open a new terminal.</p>
-    <div class="block">
-      <button class="copy" type="button" data-copy>Copy</button>
-      <div id="install-cmd"><span>$ </span>curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash</div>
+    <div class="card install-main">
+      <span class="tag">ONE LINE · COPY AND PASTE</span>
+      <div class="block">
+        <button class="copy" type="button" data-copy>Copy</button>
+        <div id="install-cmd"><span>$ </span>curl -fsSL https://alparslanpolat.github.io/hey-shell/install | bash</div>
+      </div>
     </div>
-    <p class="safe">Add <code>bash -s -- --agent codex</code> (or <code>gemini</code>) to use those instead of Claude Code. Prefer to read it first? <a href="install">The script</a> is about 60 lines, or install by hand: <code>git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell &amp;&amp; ~/hey-shell/install.sh</code></p>
-    <p class="safe">Then try <code>hse how to free up disk space</code> for the command with an explanation, or <code>hsc "&lt;command&gt;"</code> to check one before you run it.</p>
+    <div class="steps install-notes">
+      <div class="card step"><div><span class="tag">OTHER AGENTS</span><h3>Codex or Gemini</h3></div><p>Add <code>bash -s -- --agent codex</code> (or <code>gemini</code>) to use those instead of Claude Code.</p></div>
+      <div class="card step"><div><span class="tag">READ IT FIRST</span><h3>Install by hand</h3></div><p><a href="install">The script</a> is about 60 lines, or install by hand: <code>git clone https://github.com/alparslanpolat/hey-shell ~/hey-shell &amp;&amp; ~/hey-shell/install.sh</code></p></div>
+      <div class="card step"><div><span class="tag">THEN TRY</span><h3>Your first command</h3></div><p><code>hse how to free up disk space</code> for the command with an explanation, or <code>hsc "&lt;command&gt;"</code> to check one before you run it.</p></div>
+    </div>
     <p class="safe">Generated commands are only placed on your prompt, never executed. Always read them before pressing Enter.</p>
   </section>
 </main>
@@ -307,6 +357,59 @@ document.querySelector('[data-copy]').addEventListener('click', async function (
   try { await navigator.clipboard.writeText(text); this.textContent = 'Copied'; }
   catch (e) { this.textContent = 'Press Ctrl+C'; }
   setTimeout(() => { this.textContent = 'Copy'; }, 1800);
+});
+document.querySelectorAll('.carousel').forEach(function (track) {
+  var cards = Array.prototype.slice.call(track.children), n = cards.length, active = 0, startX = null, swiped = false;
+  var shell = document.createElement('div');
+  shell.className = 'car';
+  track.parentNode.insertBefore(shell, track);
+  shell.appendChild(track);
+  function button(className, label, text) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = className; b.textContent = text;
+    b.setAttribute('aria-label', label);
+    shell.appendChild(b);
+    return b;
+  }
+  button('car-btn prev', 'Previous', '←').addEventListener('click', function () { go(active - 1); });
+  button('car-btn next', 'Next', '→').addEventListener('click', function () { go(active + 1); });
+  var dots = document.createElement('div');
+  dots.className = 'car-dots';
+  shell.appendChild(dots);
+  cards.forEach(function (card, i) {
+    var dot = document.createElement('button');
+    dot.type = 'button';
+    dot.setAttribute('aria-label', 'Show ' + (i + 1) + ' of ' + n);
+    dot.addEventListener('click', function () { go(i); });
+    dots.appendChild(dot);
+    card.addEventListener('click', function () { if (!swiped && i !== active) go(i); });
+  });
+  function go(i) {
+    active = (i + n) % n;
+    cards.forEach(function (card, i) {
+      var o = (i - active + n) % n;   // signed distance from the active card, wrapping around
+      if (o > n / 2) o -= n;
+      var a = Math.abs(o);
+      card.style.transform = 'translateX(' + o * 60 + '%) scale(' + (a ? .8 : 1) + ') rotateY(' + -o * 14 + 'deg)';
+      card.style.opacity = a > 1 ? 0 : 1;
+      card.style.zIndex = 10 - a;
+      card.style.cursor = a === 1 ? 'pointer' : '';
+      card.style.setProperty('--dim', a ? .45 : 0);
+      card.setAttribute('aria-hidden', a ? 'true' : 'false');
+      dots.children[i].setAttribute('aria-current', a ? 'false' : 'true');
+    });
+  }
+  track.tabIndex = 0;
+  track.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') go(active - 1);
+    else if (e.key === 'ArrowRight') go(active + 1);
+  });
+  track.addEventListener('pointerdown', function (e) { startX = e.clientX; swiped = false; });
+  track.addEventListener('pointerup', function (e) {
+    if (startX !== null && Math.abs(e.clientX - startX) > 40) { swiped = true; go(active + (e.clientX < startX ? 1 : -1)); }
+    startX = null;
+  });
+  go(0);
 });
 </script>
 </body>
