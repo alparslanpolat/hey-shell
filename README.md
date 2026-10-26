@@ -43,7 +43,7 @@ Works in bash, zsh and fish on Linux, WSL2 and macOS. The commands come from the
 
 ## At a glance
 
-The whole idea fits in one line: **type a request, press Ctrl+G, read the command, press Enter.**
+The whole idea fits in one line: **type a request, press your shortcut, read the command, press Enter.**
 
 | You type | What happens |
 | --- | --- |
