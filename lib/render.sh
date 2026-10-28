@@ -3,7 +3,7 @@
 # Terminal output for bin/hey-shell: color by purpose, wrapping, and the status line. Sourced by bin/hey-shell.
 #   hey_shell_colors          sets C_CMD C_MUTED C_AMBER C_RED C_GREEN C_BRAND C_WORD C_OFF (empty when color is off)
 #   hey_shell_status          prints "Risk: MEDIUM · Check: No known issues" (or "Risk: none recognized") plus the reasons; run hey_shell_risk (and
-#                             hey_shell_check unless HEY_SHELL_CHECK=0) first
+#                             hey_shell_check unless HEY_SHELL_CHECK=0) first; "risk (agent):" marks a level the agent raised
 #   hey_shell_render_explain  prints the command in a labeled box, the wrapped explanation, a separate warning
 # Color is on when stdout is a terminal, or when HEY_SHELL_COLOR=always (the shell integration sets it because
 # it captures our output); HEY_SHELL_COLOR=never and NO_COLOR turn it off.
@@ -43,7 +43,9 @@ hey_shell_status() {
     printf ' %s·%s %sCheck:%s %s%s%s' "$C_MUTED" "$C_OFF" "$C_MUTED" "$C_OFF" "$ccol" "$word" "$C_OFF"
   fi
   printf '\n'
-  [ "$HEY_SHELL_RISK_LEVEL" = low ] || printf '  %srisk: %s%s\n' "$C_MUTED" "$HEY_SHELL_RISK_REASON" "$C_OFF"
+  # a level the agent raised is labeled as its opinion, not as a matched rule
+  [ "$HEY_SHELL_RISK_LEVEL" = low ] || printf '  %srisk%s: %s%s\n' "$C_MUTED" \
+    "$([ "${HEY_SHELL_RISK_SOURCE:-rules}" != agent ] || printf ' (agent)')" "$HEY_SHELL_RISK_REASON" "$C_OFF"
   if [ "${HEY_SHELL_CHECK:-1}" != 0 ] && [ "$HEY_SHELL_CHECK_LEVEL" != ok ]; then
     printf '  %scheck: %s%s\n' "$C_MUTED" "$HEY_SHELL_CHECK_REASON" "$C_OFF"
   fi

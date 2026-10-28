@@ -14,10 +14,12 @@ _hey_shell_keyseq() {
 
 # The labeled box and "Risk: ... · Check: ..." for the command. The check is on by default (turn off with
 # HEY_SHELL_CHECK=0) and never runs the command. One column narrower than the terminal, so lines never wrap.
+# $2: the file holding the agent's own risk rating, if any.
 _hey_shell_status_msg() {
   local names=''
   [[ ${HEY_SHELL_CHECK:-1} == 0 ]] || names="$(print -l -- ${(k)aliases} ${(k)functions})"
-  COLUMNS=$((COLUMNS - 1)) HEY_SHELL_COLOR=never HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1"
+  COLUMNS=$((COLUMNS - 1)) HEY_SHELL_COLOR=never HEY_SHELL_TARGET=zsh HEY_SHELL_KNOWN_NAMES=$names \
+    HEY_SHELL_RISK_FILE=${2:-} "$_hey_shell_bin" --status "$1"
 }
 
 # Show the status under the prompt line, in color. zle -M cannot color, so the text goes in POSTDISPLAY and is
@@ -68,17 +70,18 @@ _hey_shell_fill() {
   local request=$BUFFER cmd
   [[ -z $request ]] && return
   zle -R "hey-shell: thinking..."
-  local errf=$(mktemp)
-  cmd=$(HEY_SHELL_TARGET=zsh "$_hey_shell_bin" "$request" 2>"$errf") || {
+  local errf=$(mktemp) riskf=$(mktemp)
+  cmd=$(HEY_SHELL_TARGET=zsh HEY_SHELL_RISK_FILE=$riskf "$_hey_shell_bin" "$request" 2>"$errf") || {
     zle -M "$(<$errf)"
-    rm -f "$errf"
+    rm -f "$errf" "$riskf"
     return
   }
   rm -f "$errf"
-  [[ -z $cmd ]] && return
+  [[ -z $cmd ]] && { rm -f "$riskf"; return }
   BUFFER=$cmd
   CURSOR=${#BUFFER}
-  _hey_shell_show "$(_hey_shell_status_msg "$cmd")"
+  _hey_shell_show "$(_hey_shell_status_msg "$cmd" "$riskf")"
+  rm -f "$riskf"
 }
 
 # `hey-shell -e ...` explains, then leaves the command on the next prompt, ready to edit or run.

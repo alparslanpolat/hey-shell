@@ -18,18 +18,24 @@ _hey_shell_keyseq() {
 _hey_shell_status() {
   local names=''
   [ "${HEY_SHELL_CHECK:-1}" = 0 ] || names=$(compgen -A alias -A function)
-  printf '%s\n' "$(COLUMNS=${COLUMNS:-} HEY_SHELL_COLOR=always HEY_SHELL_TARGET=bash HEY_SHELL_KNOWN_NAMES=$names "$_hey_shell_bin" --status "$1")"
+  printf '%s\n' "$(COLUMNS=${COLUMNS:-} HEY_SHELL_COLOR=always HEY_SHELL_TARGET=bash HEY_SHELL_KNOWN_NAMES=$names \
+    HEY_SHELL_RISK_FILE=${_hey_shell_riskf:-} "$_hey_shell_bin" --status "$1")"
+  rm -f "${_hey_shell_riskf:-}"
+  _hey_shell_riskf=''
 }
 
-# _hey_shell_generate <request>: sets _hey_shell_cmd to the generated command, or prints the error and fails
+# _hey_shell_generate <request>: sets _hey_shell_cmd to the generated command, or prints the error and fails.
+# The agent's own risk rating goes to the file in _hey_shell_riskf, which _hey_shell_status reads and removes.
 _hey_shell_generate() {
   local errf
   _hey_shell_cmd=''
   errf=$(mktemp)
+  _hey_shell_riskf=$(mktemp)
   printf '\n\033[2m[hey-shell] thinking...\033[0m'   # replaced below by the result or the error
-  _hey_shell_cmd=$(HEY_SHELL_TARGET=bash "$_hey_shell_bin" "$1" 2>"$errf") || {
+  _hey_shell_cmd=$(HEY_SHELL_TARGET=bash HEY_SHELL_RISK_FILE=$_hey_shell_riskf "$_hey_shell_bin" "$1" 2>"$errf") || {
     printf '\r\033[K\033[31m%s\033[0m\n' "$(cat "$errf")"
-    rm -f "$errf"
+    rm -f "$errf" "$_hey_shell_riskf"
+    _hey_shell_riskf=''
     return 1
   }
   printf '\r\033[K'
