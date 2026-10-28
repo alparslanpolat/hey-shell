@@ -2,6 +2,11 @@
 
 The version lives in `.claude-plugin/plugin.json`; `hey-shell --version` prints it.
 
+## Unreleased
+
+- Risk: the agent now rates each command too, in the same answer (no extra call), as a second opinion on top of the built-in rules. It can raise the level but never lower it, and a level it raised is shown as `risk (agent): <reason>`. `hsr --ai "<command>"` asks it for a command you already have; `HEY_SHELL_AI_RISK=0` turns it off. The shell integrations pass the rating to the status line through `HEY_SHELL_RISK_FILE`.
+- Evaluation: an `agent_risk` column and a `false_low_ai` metric show how many of the rules' blind spots the agent's rating catches.
+
 ## 0.7.0
 
 Safety and trust fixes from an external audit:

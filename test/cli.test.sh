@@ -272,7 +272,7 @@ esac
 
 # fish: the prompt asks for a fish command
 FAKE_OUT='ls' HEY_SHELL_TARGET=fish "$bin" list files >/dev/null 2>&1
-prompt_has "fish target" "Reply with exactly one fish command"
+prompt_has "fish target" "line 1 is exactly one fish command"
 
 # other agents: the same fake stands in for codex and gemini; check the command line each one gets
 args() { tr '\n' ' ' < "$tmp/prompt.args"; }
@@ -281,13 +281,13 @@ has_args() { # name expected-substring
   case " $(args)" in *" $2"*) ;; *) printf 'FAIL %s\n  wanted args: %s\n  got: %s\n' "$1" "$2" "$(args)"; fail=$((fail + 1)) ;; esac
 }
 FAKE_OUT='ls' HEY_SHELL_AGENT=codex HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1
-has_args "codex: read-only sandbox, user config ignored, no session, outside git" "exec --sandbox read-only --ignore-user-config --ephemeral --skip-git-repo-check Reply with exactly one"
+has_args "codex: read-only sandbox, user config ignored, no session, outside git" "exec --sandbox read-only --ignore-user-config --ephemeral --skip-git-repo-check Reply with exactly two lines"
 total=$((total + 1))
 case " $(args)" in *" --tools"*|*" -p "*|*" -m "*) echo "FAIL codex must not get claude flags or a model it was not given"; fail=$((fail + 1)) ;; esac
 FAKE_OUT='ls' HEY_SHELL_AGENT=codex HEY_SHELL_MODEL=gpt-5-mini HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1
 has_args "codex: model" "--skip-git-repo-check -m gpt-5-mini Reply"
 FAKE_OUT='ls' HEY_SHELL_AGENT=gemini HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1
-has_args "gemini: text output, headless prompt" "-o text -p Reply with exactly one"
+has_args "gemini: text output, headless prompt" "-o text -p Reply with exactly two lines"
 FAKE_OUT='ls' HEY_SHELL_AGENT=gemini HEY_SHELL_MODEL=flash HEY_SHELL_CLI="$tmp/claude" "$bin" list files >/dev/null 2>&1
 has_args "gemini: model" "-o text -m flash -p Reply"
 FAKE_OUT='ls -la' HEY_SHELL_AGENT=codex HEY_SHELL_CLI="$tmp/claude" expect "codex: the reply becomes the command" "ls -la" list files
@@ -297,6 +297,36 @@ FAKE_STATUS=1 FAKE_ERR="401 Unauthorized" HEY_SHELL_AGENT=codex HEY_SHELL_CLI="$
 FAKE_STATUS=1 FAKE_ERR="429 rate limit" HEY_SHELL_AGENT=gemini HEY_SHELL_CLI="$tmp/claude" expect "gemini: rate limited" "Gemini is rate limited" list files
 HEY_SHELL_AGENT=gpt expect "unknown agent" "unknown HEY_SHELL_AGENT 'gpt': use claude, codex or gemini" list files
 HEY_SHELL_AGENT=gpt expect "unknown agent does not block --risk" "high" -r "rm -rf build"
+
+# the agent's risk rating: asked for in every prompt, can raise the rules' level but never lower it
+FAKE_OUT='ls -la\nRisk: low: only reads' "$bin" list files >/dev/null 2>&1
+prompt_has "risk asked in command mode" "line 2 is 'Risk: <low|medium|high>"
+FAKE_OUT='ls -la\nRisk: low: only reads' expect "risk line is not part of the command" "ls -la" list files
+total=$((total + 1))
+[ "$(FAKE_OUT='ls -la\nRisk: low: only reads' "$bin" list files 2>&1)" = "ls -la" ] || { echo "FAIL command mode should print only the command"; fail=$((fail + 1)); }
+FAKE_OUT='make clean\n\nRemoves build outputs.\nRisk: medium: deletes build outputs' expect "agent raises -e" "Risk: MEDIUM" -e clean
+FAKE_OUT='make clean\n\nRemoves build outputs.\nRisk: medium: deletes build outputs' expect "agent reason labeled" "risk (agent): deletes build outputs" -e clean
+total=$((total + 1))
+case $(FAKE_OUT='make clean\n\nRemoves build outputs.\nRisk: medium: deletes build outputs' "$bin" -e clean 2>&1) in
+  *"outputs. Risk"*|*"Removes build outputs. deletes"*) echo "FAIL the risk line must not join the explanation"; fail=$((fail + 1)) ;;
+esac
+FAKE_OUT='rm -rf build\n\nDeletes build.\nRisk: low: harmless' expect "agent cannot lower a rule" "risk: force or recursive delete" -e clean build
+FAKE_OUT='ls\n\nLists.\nRisk: catastrophic' expect "unknown agent level ignored" "Risk: none recognized" -e list
+total=$((total + 1))
+case $(FAKE_OUT='ls\n\nLists.\nRisk: high: \e[2Jcleared' HEY_SHELL_COLOR=never "$bin" -e list 2>&1) in
+  *$'\033'*) echo "FAIL control characters in the agent's reason must be dropped"; fail=$((fail + 1)) ;;
+esac
+FAKE_OUT='zfs destroy tank/data\nRisk: high: destroys the dataset' HEY_SHELL_RISK_FILE="$tmp/riskfile" "$bin" remove it >/dev/null 2>&1
+total=$((total + 1))
+[ "$(cat "$tmp/riskfile" 2>/dev/null)" = "Risk: high: destroys the dataset" ] || { echo "FAIL HEY_SHELL_RISK_FILE should hold the agent's risk line"; fail=$((fail + 1)); }
+HEY_SHELL_RISK_FILE="$tmp/riskfile" expect "--status reads the agent's rating" "Risk: HIGH" --status "zfs destroy tank/data"
+HEY_SHELL_RISK_FILE="$tmp/riskfile" HEY_SHELL_AI_RISK=0 expect "HEY_SHELL_AI_RISK=0 ignores it" "Risk: none recognized" --status "zfs destroy tank/data"
+FAKE_OUT='Risk: high: destroys the pool' expect "-r --ai" "destroys the pool (agent)" -r --ai zpool destroy tank
+prompt_has "-r --ai sends the command" "Command: zpool destroy tank"
+FAKE_OUT='Risk: high: destroys the pool' expect "-r without --ai stays rules-only" "low" -r zpool destroy tank
+FAKE_OUT='ls' HEY_SHELL_AI_RISK=0 "$bin" list files >/dev/null 2>&1
+total=$((total + 1))
+case $(cat "$tmp/prompt") in *"Risk:"*) echo "FAIL HEY_SHELL_AI_RISK=0 should not ask for a rating"; fail=$((fail + 1)) ;; esac
 
 echo "$((total - fail))/$total passed"
 [ "$fail" -eq 0 ]

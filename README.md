@@ -57,7 +57,7 @@ The whole idea fits in one line: **type a request, press your shortcut, read the
 | --- | --- |
 | `hsf` | right after a command fails: a corrected version, left on your next prompt |
 | `hsw <command>` | explains a command you already have |
-| `hsr <command>` | rates a command: low, medium or high |
+| `hsr <command>` | rates a command: low, medium or high (`hsr --ai <command>` also asks the agent) |
 | `hsc <command>` | looks for known reasons a command would fail, without running it |
 | `hey-shell --history [text]` | your recent requests and the commands they produced |
 | `hs` | the logo and the help |
@@ -221,6 +221,7 @@ It is a prediction, not a guarantee. It cannot know whether a file exists, wheth
 | `HEY_SHELL_UPDATE_CHECK` | on | `0` = no "Update available" line |
 | `HEY_SHELL_CONTEXT` | on | `0` = do not tell the agent about installed tools and the project |
 | `HEY_SHELL_HISTORY` | off | `1` = keep your requests and commands in `~/.local/state/hey-shell/history.tsv` (private to you, last 500) |
+| `HEY_SHELL_AI_RISK` | on | `0` = rate commands with the built-in rules alone, without asking the agent for its own rating |
 | `HEY_SHELL_CHECK` | on | `0` turns off the failure prediction after `hse` and on the key binding |
 | `HEY_SHELL_COLOR` | `auto` | `always` or `never` overrides the terminal detection; `NO_COLOR` always wins |
 | `HEY_SHELL_KEY` | `ctrl+g` | trigger key: `ctrl+x`, `alt+x`, or a raw `bindkey` / `bind` sequence. The installer sets this for you |
@@ -240,9 +241,18 @@ Commands are only placed on the prompt, never executed. Each generated command i
 
 The failure check works the same way: `Check: No known issues` means none of its checks found a problem (syntax, missing programs, no git repository, no tmux server, no docker daemon). It does not mean the command was tested or will succeed.
 
-`Risk: none recognized` means exactly that: no known risky pattern matched. It is not a statement that the command is safe, and the risk rating is a prompt to read, not a security gate.
+`Risk: none recognized` means exactly that: no known risky pattern matched, and the agent did not rate it higher. It is not a statement that the command is safe, and the risk rating is a prompt to read, not a security gate.
 
-**What the checks cannot detect.** Both are pattern matching on the command's text, not a guarantee:
+**The agent's second opinion.** The rating comes from two places. Built-in rules (`lib/risk.sh`) match the command's text: they are instant, work offline and give the same answer every time. On top of them, the agent that wrote the command also rates it, in the same answer, so it costs no extra call or wait. The agent can only **raise** the level, never lower it: if a rule says HIGH, it stays HIGH whatever the agent says, so a request (or text pasted into one) that talks the model into "low" changes nothing. When the level shown is the agent's, the reason says so:
+
+```
+Risk: HIGH · Check: No known issues
+  risk (agent): destroys the dataset and its snapshots
+```
+
+This catches things the rules do not know, such as `zfs destroy`, `make clean` or a command built at run time, but it is the opinion of the same model that wrote the command, so it can miss what the model misunderstood. `hsr` uses the rules alone; `hsr --ai "<command>"` also asks the agent. `HEY_SHELL_AI_RISK=0` turns the agent's rating off.
+
+**What the checks cannot detect.** Both rely on pattern matching on the command's text (the agent's rating can only add to it), not a guarantee:
 
 - Commands built at run time: `$(echo rm) -rf build`, `x=rm; $x -rf build`, `eval "$cmd"`.
 - What a script or program does once it runs: `./deploy.sh`, `make clean`, `npm run reset`.

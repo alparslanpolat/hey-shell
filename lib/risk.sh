@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2034  # the results are globals read by bin/hey-shell
 # Risk classification for generated commands. Sourced by bin/hey-shell.
-#   hey_shell_risk "<command>"  sets HEY_SHELL_RISK_LEVEL (low|medium|high) and HEY_SHELL_RISK_REASON.
+#   hey_shell_risk "<command>"  sets HEY_SHELL_RISK_LEVEL (low|medium|high), HEY_SHELL_RISK_REASON and
+#                               HEY_SHELL_RISK_SOURCE=rules; hey_shell_risk_agent (below) can raise it afterwards.
 # Pattern matching only: it can miss things and can flag harmless text. It is a prompt to read, not a guarantee.
 # It cannot see through indirection: a command built at run time ($(echo rm) -rf, x=rm; $x ..., eval of a
 # variable), aliases and functions defined elsewhere, or what a script it runs will do. README "Safety" lists
@@ -24,6 +25,7 @@ hey_shell_risk() {
   _hs_cmd=$1
   HEY_SHELL_RISK_LEVEL=low
   HEY_SHELL_RISK_REASON=""
+  HEY_SHELL_RISK_SOURCE=rules
 
   # high: destructive, irreversible, or runs code fetched from the network
   _hs_rule high "(curl|wget|fetch|http|aria2c)[^|;&]*$_hs_into" 'downloads and runs a script'
@@ -80,4 +82,24 @@ hey_shell_risk() {
        | grep -Eo '(^|[^>&0-9])[0-9]?>[|]?[[:space:]]*[^&>[:space:]]+' | grep -Ev '>[|]?[[:space:]]*/dev/(null|stdout|stderr|tty)$' | grep -q .; then
     HEY_SHELL_RISK_LEVEL=medium HEY_SHELL_RISK_REASON='overwrites a file with >'
   fi
+}
+
+# The agent's own rating, a second opinion on top of the rules above. The agent that wrote the command is asked to
+# end its reply with "Risk: <low|medium|high>: <reason>"; bin/hey-shell passes that line here.
+#   hey_shell_risk_agent "<line>"  after hey_shell_risk: raises HEY_SHELL_RISK_LEVEL to the agent's level when that
+#                                  is higher, and sets HEY_SHELL_RISK_SOURCE=agent. It never lowers a level, so a reply
+#                                  talked into "low" (by the request, or text pasted into it) changes nothing.
+# The reason is the model's text: control characters are dropped and it is cut to 80 characters before it is shown.
+_hs_rank() { case $1 in high) echo 2 ;; medium) echo 1 ;; *) echo 0 ;; esac; }
+
+hey_shell_risk_agent() {
+  local line level reason
+  line=$(printf '%s' "$1" | head -1 | LC_ALL=C tr -d '\000-\037\177' | sed 's/^[[:space:]]*[Rr][Ii][Ss][Kk]:[[:space:]]*//')
+  level=$(printf '%s' "$line" | sed -E 's/^([[:alpha:]]+).*/\1/' | tr '[:upper:]' '[:lower:]')
+  case $level in low|medium|high) ;; *) return 0 ;; esac
+  [ "$(_hs_rank "$level")" -gt "$(_hs_rank "$HEY_SHELL_RISK_LEVEL")" ] || return 0
+  reason=$(printf '%s' "${line:${#level}}" | sed -E 's/^[[:space:]]*[-:]*[[:space:]]*//; s/[[:space:]]+/ /g; s/[[:space:].]*$//' | cut -c1-80)
+  HEY_SHELL_RISK_LEVEL=$level
+  HEY_SHELL_RISK_REASON=${reason:-rated $level by the agent}
+  HEY_SHELL_RISK_SOURCE=agent
 }

@@ -17,31 +17,35 @@ function _hey_shell_keyseq
 end
 
 # The labeled box and "Risk: ... · Check: ..." for the command, printed above the prompt. The check is on by
-# default (turn off with HEY_SHELL_CHECK=0) and never runs the command.
+# default (turn off with HEY_SHELL_CHECK=0) and never runs the command. $argv[2]: the file holding the agent's
+# own risk rating, if any.
 function _hey_shell_status
     set -l names
     test "$HEY_SHELL_CHECK" = 0; or set names (string join \n -- (functions -n) (abbr --list))
-    COLUMNS=$COLUMNS HEY_SHELL_COLOR=always HEY_SHELL_TARGET=fish HEY_SHELL_KNOWN_NAMES="$names" $_hey_shell_bin --status $argv[1]
+    COLUMNS=$COLUMNS HEY_SHELL_COLOR=always HEY_SHELL_TARGET=fish HEY_SHELL_KNOWN_NAMES="$names" \
+        HEY_SHELL_RISK_FILE="$argv[2]" $_hey_shell_bin --status $argv[1]
 end
 
 function _hey_shell_fill
     set -l request (commandline)
     test -n "$request"; or return
     set -l errf (mktemp)
+    set -l riskf (mktemp)
     printf '\n\e[2m[hey-shell] thinking...\e[0m'   # replaced below by the result or the error
-    set -l cmd (HEY_SHELL_TARGET=fish $_hey_shell_bin "$request" 2>$errf | string collect)
+    set -l cmd (HEY_SHELL_TARGET=fish HEY_SHELL_RISK_FILE=$riskf $_hey_shell_bin "$request" 2>$errf | string collect)
     if test $pipestatus[1] -ne 0
         printf '\r\e[K\e[31m%s\e[0m\n' (cat $errf)
-        rm -f $errf
+        rm -f $errf $riskf
         commandline -f repaint
         return
     end
     printf '\r\e[K'
     rm -f $errf
-    test -n "$cmd"; or begin; commandline -f repaint; return; end
+    test -n "$cmd"; or begin; rm -f $riskf; commandline -f repaint; return; end
     commandline -r -- $cmd
     commandline -C (string length -- $cmd)
-    _hey_shell_status $cmd
+    _hey_shell_status $cmd $riskf
+    rm -f $riskf
     commandline -f repaint
 end
 
